@@ -46,7 +46,7 @@ final class CarViewModel: ObservableObject {
     @Published private(set) var vehicleId: String?
     @Published private(set) var parkNote: String? = nil
     @Published private(set) var parkKnown = false
-    @Published private(set) var connect = ConnectStatus()
+    @Published private(set) var connectStatus = ConnectStatus()
     @Published private(set) var capabilities: CapabilitiesDto? = nil
     @Published private(set) var scenes: [SceneTemplateDto] = []
     @Published private(set) var schedules: [ClimateScheduleDto] = []
@@ -107,29 +107,29 @@ final class CarViewModel: ObservableObject {
         connectTask = Task { [weak self] in
             guard let self else { return }
             defer { self.connecting = false }
-            self.connect = ConnectStatus(phase: .sending)
+            self.connectStatus = ConnectStatus(phase: .sending)
 
             let how: String
             switch await self.repo.wake() {
             case .sent(let h): how = "Разбудили \(h)"
             case .failed(let reason):
-                self.connect = ConnectStatus(phase: .error, message: scrubAddresses(reason) ?? "Не удалось разбудить машину")
+                self.connectStatus = ConnectStatus(phase: .error, message: scrubAddresses(reason) ?? "Не удалось разбудить машину")
                 return
             case .noServer:
-                self.connect = ConnectStatus(phase: .error, message: "Будить нечем: нет входа на сервер")
+                self.connectStatus = ConnectStatus(phase: .error, message: "Будить нечем: нет входа на сервер")
                 return
             }
 
             let startedAt = Date()
             func waited() -> Int { Int(Date().timeIntervalSince(startedAt)) }
-            self.connect = ConnectStatus(phase: .waiting, message: how, waitedSec: 0)
+            self.connectStatus = ConnectStatus(phase: .waiting, message: how, waitedSec: 0)
 
             // Отдельный тикер рисует секунды ровно, не дожидаясь опроса.
             let ticker = Task { [weak self] in
                 while !Task.isCancelled {
                     try? await Task.sleep(nanoseconds: Self.tickNs)
-                    guard let self, self.connect.phase == .waiting else { break }
-                    var c = self.connect; c.waitedSec = waited(); self.connect = c
+                    guard let self, self.connectStatus.phase == .waiting else { break }
+                    var c = self.connectStatus; c.waitedSec = waited(); self.connectStatus = c
                 }
             }
             defer { ticker.cancel() }
@@ -139,7 +139,7 @@ final class CarViewModel: ObservableObject {
                 if Task.isCancelled { return }
                 self.car = state
                 if state.link != .none {
-                    self.connect = ConnectStatus(phase: .connected)
+                    self.connectStatus = ConnectStatus(phase: .connected)
                     self.startPolling()
                     return
                 }
@@ -147,7 +147,7 @@ final class CarViewModel: ObservableObject {
                 try? await Task.sleep(nanoseconds: Self.probeStepNs)
             }
             if Task.isCancelled { return }
-            self.connect = ConnectStatus(phase: .timeout, message: "Машина не ответила за \(Self.wakeWaitSec) с", waitedSec: waited())
+            self.connectStatus = ConnectStatus(phase: .timeout, message: "Машина не ответила за \(Self.wakeWaitSec) с", waitedSec: waited())
         }
     }
 
@@ -164,7 +164,7 @@ final class CarViewModel: ObservableObject {
             case .noServer: note = "Не отключилось: нет входа на сервер"
             }
             resetConnection()
-            connect = ConnectStatus(phase: .idle, message: note)
+            connectStatus = ConnectStatus(phase: .idle, message: note)
         }
     }
 
@@ -174,14 +174,14 @@ final class CarViewModel: ObservableObject {
             busy = true
             for _ in 0..<3 { _ = await repo.sleep() }
             busy = false
-            connect = ConnectStatus(phase: .idle, message: "Команда отправлена 3 раза")
+            connectStatus = ConnectStatus(phase: .idle, message: "Команда отправлена 3 раза")
         }
     }
 
     /// Войти, не дождавшись машины: данные будут последними известными.
     func enterAnyway() {
         connectTask?.cancel(); connectTask = nil
-        connect = ConnectStatus(phase: .connected, degraded: true)
+        connectStatus = ConnectStatus(phase: .connected, degraded: true)
         startPolling()
     }
 
@@ -189,13 +189,13 @@ final class CarViewModel: ObservableObject {
     func resetConnection() {
         connectTask?.cancel(); connectTask = nil
         stopPolling()
-        connect = ConnectStatus()
+        connectStatus = ConnectStatus()
     }
 
     // --- опрос ---
 
     func startPolling() {
-        guard connect.phase == .connected else { return }
+        guard connectStatus.phase == .connected else { return }
         loadMeta()
         if let t = pollTask, !t.isCancelled { return }
         pollTask = Task { [weak self] in

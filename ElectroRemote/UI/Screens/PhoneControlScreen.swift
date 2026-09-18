@@ -15,8 +15,8 @@ struct PhoneControlScreen: View {
     @State private var toastTask: Task<Void, Never>? = nil
 
     var body: some View {
-        if vm.connect.phase != .connected {
-            ConnectScreen(vm: vm, status: vm.connect)
+        if vm.connectStatus.phase != .connected {
+            ConnectScreen(vm: vm, status: vm.connectStatus)
         } else {
             connected
         }
