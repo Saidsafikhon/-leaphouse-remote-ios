@@ -1,4 +1,4 @@
-# Первая публикация в https://github.com/saidsafikhon/leaphouse-remote-ios
+# Первая публикация в https://github.com/Saidsafikhon/leaphouse-remote-ios
 # Перед запуском создайте на GitHub пустой репозиторий leaphouse-remote-ios
 # (без README/.gitignore). Запуск: ! powershell -File "D:/PROJECT/leaphouse-remote-ios/push.ps1"
 Set-Location D:\PROJECT\leaphouse-remote-ios
@@ -17,5 +17,5 @@ Leaphouse Remote iOS 0.38.19 (75): SwiftUI-порт Android-клиента + CI
 Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
 '@
 git remote remove origin 2>$null
-git remote add origin https://github.com/saidsafikhon/leaphouse-remote-ios.git
+git remote add origin https://github.com/Saidsafikhon/leaphouse-remote-ios.git
 git push -u origin main
