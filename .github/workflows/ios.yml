@@ -12,6 +12,9 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: macos-15
@@ -71,6 +74,18 @@ jobs:
             TAIL=$(tail -c 3500 "$f" | grep -v '^$' | awk '{printf "%s%%0A", $0}')
             echo "::error::TAIL $f%0A$TAIL"
           done
+
+      # Неподписанный .ipa — в релиз «latest»: оттуда файл скачивается прямой ссылкой без входа.
+      - name: Publish to release "latest"
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          IPA=$(ls *.ipa | head -1)
+          gh release view latest >/dev/null 2>&1 || gh release create latest --title "Leaphouse Remote iOS (unsigned)" --notes "Последняя неподписанная сборка с main. Подписать Sideloadly/AltStore." --latest
+          gh release upload latest "$IPA" --clobber
+          cp "$IPA" ElectroRemote-latest-unsigned.ipa
+          gh release upload latest ElectroRemote-latest-unsigned.ipa --clobber
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
