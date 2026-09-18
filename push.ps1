@@ -3,8 +3,8 @@
 # (без README/.gitignore). Запуск: ! powershell -File "D:/PROJECT/leaphouse-remote-ios/push.ps1"
 Set-Location D:\PROJECT\leaphouse-remote-ios
 if (-not (Test-Path .git)) { git init -b main }
-git config user.name "Saidsafikhon"
-git config user.email "amhetramines@gmail.com"
+git config user.name "saidsafikhon"
+git config user.email "saidsafikhon@gmail.com"
 git add -A
 git commit -m @'
 Leaphouse Remote iOS 0.38.19 (75): SwiftUI-порт Android-клиента + CI

@@ -33,7 +33,7 @@ jobs:
           set -o pipefail
           xcodebuild -project ElectroRemote.xcodeproj -scheme ElectroRemote -configuration Debug \
             -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
-            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO build | tee sim-build.log | grep -E "error:|warning: unused|BUILD" || true
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO build | tee sim-build.log | grep -E "error:|BUILD" || true
           grep -q "BUILD SUCCEEDED" sim-build.log
 
       - name: Build (device, unsigned)
@@ -53,6 +53,15 @@ jobs:
           BUILD=$(/usr/libexec/PlistBuddy -c "Print CFBundleVersion" "$APP/Info.plist")
           zip -qr "ElectroRemote-${VERSION}-${BUILD}-unsigned.ipa" Payload
           ls -la *.ipa
+
+      # Ошибки компиляции — аннотациями и в summary: их видно без входа в GitHub.
+      - name: Report compile errors
+        if: failure()
+        run: |
+          grep -hE "error:" sim-build.log dev-build.log 2>/dev/null | sed 's#/Users/runner/work/[^/]*/[^/]*/##' | sort -u > errors.txt || true
+          echo "## Ошибки компиляции ($(wc -l < errors.txt))" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"; cat errors.txt >> "$GITHUB_STEP_SUMMARY"; echo '```' >> "$GITHUB_STEP_SUMMARY"
+          head -60 errors.txt | while IFS= read -r l; do echo "::error::$l"; done
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
