@@ -1,0 +1,186 @@
+import SwiftUI
+
+/// Полноэкранные настройки: вход в аккаунт, машины (добавить, выбрать,
+/// переименовать, отвязать), выход. Переименование — локальное, только в
+/// этом телефоне.
+struct SettingsScreen: View {
+    @Environment(\.palette) private var p
+    @ObservedObject var vm: CarViewModel
+    let onClose: () -> Void
+
+    @State private var email = ""
+    @State private var password = ""
+    @State private var error: String? = nil
+    @State private var renaming: VehicleDto? = nil
+    @State private var renameText = ""
+    @State private var dialog: DialogSpec? = nil
+    @State private var scanning = false
+    @State private var pairMsg: String? = nil
+
+    var body: some View {
+        ScreenScaffold(title: "Настройки", onBack: onClose) {
+            if vm.loggedIn {
+                SectionCard(title: "Аккаунт") {
+                    Text("Вход выполнен: " + (vm.settings.email ?? "—")).font(.system(size: 14)).foregroundStyle(p.textPrimary)
+                    Button { vm.logout() } label: {
+                        Text("Выйти из аккаунта").font(ElectroType.body).foregroundStyle(p.danger)
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                SectionCard(title: "Мои машины", action: "Обновить", onAction: { vm.loadVehicles() }) {
+                    if vm.vehicles.isEmpty {
+                        Text(vm.parkNote ?? "Машин нет — добавьте по QR с экрана машины.")
+                            .font(.system(size: 12)).foregroundStyle(p.textMuted)
+                    }
+                    ForEach(vm.vehicles) { v in
+                        VehicleRow(
+                            vehicle: v,
+                            nick: vm.vehicleNick(v.vehicle_id),
+                            selected: v.vehicle_id == vm.vehicleId,
+                            onSelect: { vm.selectVehicle(v.vehicle_id) },
+                            onRename: { renameText = vm.vehicleNick(v.vehicle_id) ?? v.name; renaming = v },
+                            onDrop: {
+                                let shown = vm.vehicleNick(v.vehicle_id) ?? v.name
+                                dialog = DialogSpec(
+                                    icon: "trash", accent: p.danger, title: "Отвязать машину?",
+                                    message: "«\(shown)» перестанет быть доступной этому аккаунту. Сама машина останется — доступ вернёт новый QR с её экрана.",
+                                    confirmText: "Отвязать", onConfirm: { vm.unlinkVehicle(v.vehicle_id) }
+                                )
+                            }
+                        )
+                        .id("\(v.vehicle_id)-\(vm.nickVersion)")
+                    }
+                    Button { scanning = true } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "plus.circle").font(.system(size: 16)).foregroundStyle(p.accent)
+                            Text("Добавить машину").font(ElectroType.body).foregroundStyle(p.accent)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    if let pairMsg {
+                        Text(pairMsg).font(.system(size: 12)).foregroundStyle(p.textSecondary)
+                    }
+                }
+            } else {
+                SectionCard(title: "Вход") {
+                    AuthField(label: "ЛОГИН", value: $email, keyboard: .emailAddress, contentType: .username)
+                    AuthField(label: "ПАРОЛЬ", value: $password, secure: true, contentType: .password)
+                    if let error {
+                        Text(error).font(.system(size: 13)).foregroundStyle(p.danger)
+                    }
+                    ElectroButton(
+                        text: "Войти",
+                        enabled: !vm.busy && !email.trimmingCharacters(in: .whitespaces).isEmpty && !password.isEmpty,
+                        loading: vm.busy
+                    ) {
+                        error = nil
+                        vm.login(email: email.trimmingCharacters(in: .whitespaces), password: password) { failure in error = failure }
+                    }
+                }
+            }
+
+            Text(appVersion()).font(ElectroType.caption).foregroundStyle(p.textMuted)
+                .frame(maxWidth: .infinity).padding(.top, Space.x2)
+        }
+        .onAppear {
+            email = vm.settings.email ?? ""
+            if vm.loggedIn { vm.loadVehicles() }
+        }
+        .electroDialog($dialog)
+        .fullScreenCover(isPresented: $scanning) {
+            QRScannerScreen { payload in
+                scanning = false
+                guard let payload else { return }
+                pairMsg = nil
+                Task {
+                    do { _ = try await vm.claimPairing(payload); pairMsg = "Машина привязана" }
+                    catch { pairMsg = (error as? RepoError)?.message ?? "Не удалось привязать машину" }
+                }
+            }
+        }
+        .sheet(item: $renaming) { v in
+            RenameSheet(name: $renameText, serverName: v.name) { save in
+                if save {
+                    let trimmed = renameText.trimmingCharacters(in: .whitespaces)
+                    vm.setVehicleNick(v.vehicle_id, (trimmed.isEmpty || trimmed == v.name) ? nil : trimmed)
+                } else {
+                    vm.setVehicleNick(v.vehicle_id, nil)
+                }
+                renaming = nil
+            }
+        }
+    }
+}
+
+/// Строка машины: выбор радиокнопкой, имя (локальное поверх серверного), правка и отвязка.
+private struct VehicleRow: View {
+    @Environment(\.palette) private var p
+    let vehicle: VehicleDto
+    let nick: String?
+    let selected: Bool
+    let onSelect: () -> Void
+    let onRename: () -> Void
+    let onDrop: () -> Void
+
+    var body: some View {
+        HStack(spacing: Space.x2) {
+            Button(action: onSelect) {
+                Image(systemName: selected ? "largecircle.fill.circle" : "circle")
+                    .font(.system(size: 20)).foregroundStyle(selected ? p.accent : p.textMuted)
+                    .frame(width: 36, height: 36)
+            }
+            .buttonStyle(.plain)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(nick ?? vehicle.name)
+                    .font(.system(size: 14, weight: selected ? .bold : .regular))
+                    .foregroundStyle(selected ? p.textPrimary : p.textSecondary)
+                Text([vehicle.model, vehicle.vin.isEmpty ? nil : vehicle.vin].compactMap { $0 }.joined(separator: " · "))
+                    .font(.system(size: 11)).foregroundStyle(p.textMuted)
+            }
+            .contentShape(Rectangle())
+            .onTapGesture(perform: onSelect)
+            Spacer()
+            Button(action: onRename) {
+                Image(systemName: "pencil").font(.system(size: 17)).foregroundStyle(p.textSecondary).frame(width: 36, height: 36)
+            }
+            .buttonStyle(.plain)
+            Button(action: onDrop) {
+                Image(systemName: "trash").font(.system(size: 17)).foregroundStyle(p.danger).frame(width: 36, height: 36)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.vertical, 4)
+    }
+}
+
+/// Переименование (локальное имя).
+private struct RenameSheet: View {
+    @Environment(\.palette) private var p
+    @Binding var name: String
+    let serverName: String
+    /// true — сохранить, false — сбросить к серверному имени.
+    let onDone: (Bool) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Space.x3) {
+            Text("Имя машины").font(ElectroType.headline).foregroundStyle(p.textPrimary)
+            Text("Показывается только в этом телефоне.").font(.system(size: 12)).foregroundStyle(p.textMuted)
+            TextField(serverName, text: $name)
+                .font(ElectroType.body).foregroundStyle(p.textPrimary).tint(p.accent)
+                .padding(.horizontal, Space.x4).frame(height: 52)
+                .background(p.surface)
+                .clipShape(RoundedRectangle(cornerRadius: Radius.sm, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: Radius.sm, style: .continuous).stroke(p.outline, lineWidth: 1))
+            HStack(spacing: Space.x2) {
+                ElectroButton(text: "Сбросить", style: .ghost) { onDone(false) }
+                ElectroButton(text: "Сохранить", style: .primary) { onDone(true) }
+            }
+            Spacer()
+        }
+        .padding(Space.x6)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .background(p.surfaceElevated)
+        .presentationDetents([.medium])
+    }
+}

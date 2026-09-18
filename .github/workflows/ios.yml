@@ -1,0 +1,65 @@
+# Сборка iOS-клиента Leaphouse Remote на macOS-раннере GitHub.
+#
+# Без Apple Developer подписать нечем, поэтому job собирает:
+#   1) под симулятор — проверка, что код компилируется;
+#   2) под устройство БЕЗ подписи — артефакт ElectroRemote-unsigned.ipa,
+#      его можно подписать своим Apple ID (Sideloadly / AltStore, 7 дней)
+#      или, когда появится аккаунт, — сертификатом разработчика.
+name: ios
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-14
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_15.4.app || sudo xcode-select -s "$(ls -d /Applications/Xcode*.app | tail -1)"
+
+      - name: Install xcodegen
+        run: brew install xcodegen
+
+      - name: Generate project
+        run: xcodegen generate
+
+      - name: Build (simulator)
+        run: |
+          set -o pipefail
+          xcodebuild -project ElectroRemote.xcodeproj -scheme ElectroRemote -configuration Debug \
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO build | tee sim-build.log | grep -E "error:|warning: unused|BUILD" || true
+          grep -q "BUILD SUCCEEDED" sim-build.log
+
+      - name: Build (device, unsigned)
+        run: |
+          set -o pipefail
+          xcodebuild -project ElectroRemote.xcodeproj -scheme ElectroRemote -configuration Release \
+            -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" build | tee dev-build.log | grep -E "error:|BUILD" || true
+          grep -q "BUILD SUCCEEDED" dev-build.log
+
+      - name: Package unsigned .ipa
+        run: |
+          APP=build/Build/Products/Release-iphoneos/ElectroRemote.app
+          test -d "$APP"
+          rm -rf Payload && mkdir Payload && cp -R "$APP" Payload/
+          VERSION=$(/usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" "$APP/Info.plist")
+          BUILD=$(/usr/libexec/PlistBuddy -c "Print CFBundleVersion" "$APP/Info.plist")
+          zip -qr "ElectroRemote-${VERSION}-${BUILD}-unsigned.ipa" Payload
+          ls -la *.ipa
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ElectroRemote-unsigned-ipa
+          path: |
+            *.ipa
+            sim-build.log
+            dev-build.log
+          if-no-files-found: error

@@ -1,0 +1,125 @@
+import SwiftUI
+
+/// Экран подключения — первое, что видно при запуске. По кнопке машину будят
+/// через сервер, и только когда голова ответила, пускают внутрь.
+struct ConnectScreen: View {
+    @Environment(\.palette) private var p
+    @ObservedObject var vm: CarViewModel
+    let status: ConnectStatus
+
+    @State private var showSettings = false
+    @State private var showHelp = false
+
+    private func start() {
+        if vm.wakeConfigured { vm.connect() } else { showSettings = true }
+    }
+
+    var body: some View {
+        if showSettings {
+            SettingsScreen(vm: vm) { showSettings = false }
+        } else {
+            content
+        }
+    }
+
+    private var content: some View {
+        let chosen = vm.selectedVehicle
+        return VStack(spacing: 0) {
+            HStack { Spacer(); HelpFab { showHelp = true } }
+            Spacer()
+
+            Text("LEAPHOUSE REMOTE").font(ElectroType.overline).kerning(1.1).foregroundStyle(p.accent)
+            Spacer().frame(height: Space.x2)
+            Text(chosen?.model ?? "C16").font(ElectroType.display).foregroundStyle(p.textPrimary)
+            if let name = chosen?.name, !name.isEmpty {
+                Spacer().frame(height: Space.x1)
+                Text(name).font(ElectroType.body).foregroundStyle(p.textMuted)
+            }
+            Spacer().frame(height: Space.x6)
+
+            // Рендер машины с тёмной подложкой в PNG — оформляем hero-карточкой.
+            ZStack(alignment: .topTrailing) {
+                Image("car_01").resizable().scaledToFit().frame(maxWidth: .infinity).frame(height: 200)
+                PhaseBadge(status: status).padding(Space.x3)
+            }
+            .frame(maxWidth: .infinity)
+            .background(p.surfaceRaised)
+            .clipShape(RoundedRectangle(cornerRadius: Radius.lg, style: .continuous))
+
+            Spacer().frame(height: Space.x5)
+            Text(hint(status, vm.wakeConfigured)).font(ElectroType.body).foregroundStyle(p.textSecondary)
+                .multilineTextAlignment(.center)
+
+            if status.phase == .waiting {
+                Spacer().frame(height: Space.x4)
+                ProgressView().progressViewStyle(.linear).tint(p.accent)
+            }
+
+            Spacer()
+
+            VStack(spacing: Space.x2) {
+                switch status.phase {
+                case .idle:
+                    ElectroButton(text: "Подключиться") { start() }
+                    ElectroButton(text: "Найти машину", style: .secondary, enabled: !vm.busy) { vm.findCar() }
+                case .sending, .waiting:
+                    ElectroButton(text: "Подключение", loading: true) {}
+                case .timeout:
+                    ElectroButton(text: "Разбудить ещё раз") { start() }
+                    ElectroButton(text: "Всё равно открыть", style: .secondary) { vm.enterAnyway() }
+                case .error:
+                    ElectroButton(text: "Повторить") { start() }
+                    ElectroButton(text: "Всё равно открыть", style: .ghost) { vm.enterAnyway() }
+                case .connected:
+                    EmptyView()
+                }
+            }
+
+            Spacer().frame(height: Space.x3)
+            ElectroButton(text: vm.wakeConfigured ? "Настройки" : "Настроить подключение", style: .ghost) { showSettings = true }
+            Spacer().frame(height: Space.x3)
+            Text(appVersion()).font(ElectroType.caption).foregroundStyle(p.textMuted)
+            Spacer().frame(height: Space.x3)
+        }
+        .padding(.horizontal, Space.x5)
+        .padding(.top, Space.x6)
+        .padding(.bottom, Space.x5)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(p.background)
+        .sheet(isPresented: $showHelp) { HelpSheet(support: vm.support) }
+    }
+}
+
+private struct PhaseBadge: View {
+    let status: ConnectStatus
+    var body: some View {
+        switch status.phase {
+        case .idle: StatusBadge(kind: .offline, text: "СПИТ")
+        case .sending: StatusBadge(kind: .info, text: "БУДИМ МАШИНУ")
+        case .waiting: StatusBadge(kind: .unconfirmed, text: "ЖДЁМ ОТКЛИКА · \(status.waitedSec) С")
+        case .timeout: StatusBadge(kind: .timeout, text: "НЕ ОТОЗВАЛАСЬ")
+        case .error: StatusBadge(kind: .failed, text: "ОШИБКА")
+        case .connected: StatusBadge(kind: .online, text: "НА СВЯЗИ")
+        }
+    }
+}
+
+private func hint(_ status: ConnectStatus, _ configured: Bool) -> String {
+    if !configured && status.phase == .idle {
+        return "Войдите на сервер в настройках — иначе будить машину нечем."
+    }
+    switch status.phase {
+    case .idle:
+        return status.message ?? "Модем машины спит. По кнопке сервер разбудит её, и она выйдет на связь."
+    case .sending:
+        return "Отправляем команду пробуждения…"
+    case .waiting:
+        return (status.message ?? "Команда отправлена") + ". Машина обычно отзывается за 20–40 секунд."
+    case .timeout:
+        return (status.message ?? "Машина не ответила") + ". Команда принята, но машина не вышла на связь: возможно, она вне зоны."
+    case .error:
+        return status.message ?? "Не удалось разбудить машину"
+    case .connected:
+        return ""
+    }
+}
