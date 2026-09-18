@@ -55,6 +55,7 @@ jobs:
           ls -la *.ipa
 
       # Ошибки компиляции — аннотациями и в summary: их видно без входа в GitHub.
+      # Ошибки компиляции — аннотациями и в summary: их видно без входа в GitHub.
       - name: Report compile errors
         if: failure()
         run: |
@@ -62,11 +63,11 @@ jobs:
           echo "## Ошибки компиляции ($(wc -l < errors.txt))" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"; cat errors.txt >> "$GITHUB_STEP_SUMMARY"; echo '```' >> "$GITHUB_STEP_SUMMARY"
           head -40 errors.txt | while IFS= read -r l; do echo "::error::$l"; done
-          # хвост лога одной аннотацией (переводы строк кодируются %0A)
+          # хвост лога одной аннотацией: переводы строк кодируются как %0A
           for f in sim-build.log dev-build.log; do
             [ -f "$f" ] || continue
-            tail -c 3500 "$f" | grep -v "^$" | python3 -c 'import sys; print("::error::TAIL " + sys.argv[1] + "%0A" + sys.stdin.read().replace("","").replace("
-","%0A"))' "$f"
+            TAIL=$(tail -c 3500 "$f" | grep -v '^$' | awk '{printf "%s%%0A", $0}')
+            echo "::error::TAIL $f%0A$TAIL"
           done
 
       - name: Upload artifacts
