@@ -33,7 +33,7 @@ jobs:
           set -o pipefail
           xcodebuild -project ElectroRemote.xcodeproj -scheme ElectroRemote -configuration Debug \
             -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
-            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO build | tee sim-build.log | grep -E "error:|BUILD" || true
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO build 2>&1 | tee sim-build.log | grep -E "error:|BUILD" || true
           grep -q "BUILD SUCCEEDED" sim-build.log
 
       - name: Build (device, unsigned)
@@ -41,7 +41,7 @@ jobs:
           set -o pipefail
           xcodebuild -project ElectroRemote.xcodeproj -scheme ElectroRemote -configuration Release \
             -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath build \
-            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" build | tee dev-build.log | grep -E "error:|BUILD" || true
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" build 2>&1 | tee dev-build.log | grep -E "error:|BUILD" || true
           grep -q "BUILD SUCCEEDED" dev-build.log
 
       - name: Package unsigned .ipa
@@ -61,7 +61,13 @@ jobs:
           grep -hE "error:" sim-build.log dev-build.log 2>/dev/null | sed 's#/Users/runner/work/[^/]*/[^/]*/##' | sort -u > errors.txt || true
           echo "## Ошибки компиляции ($(wc -l < errors.txt))" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"; cat errors.txt >> "$GITHUB_STEP_SUMMARY"; echo '```' >> "$GITHUB_STEP_SUMMARY"
-          head -60 errors.txt | while IFS= read -r l; do echo "::error::$l"; done
+          head -40 errors.txt | while IFS= read -r l; do echo "::error::$l"; done
+          # хвост лога одной аннотацией (переводы строк кодируются %0A)
+          for f in sim-build.log dev-build.log; do
+            [ -f "$f" ] || continue
+            tail -c 3500 "$f" | grep -v "^$" | python3 -c 'import sys; print("::error::TAIL " + sys.argv[1] + "%0A" + sys.stdin.read().replace("","").replace("
+","%0A"))' "$f"
+          done
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
