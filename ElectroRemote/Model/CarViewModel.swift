@@ -500,6 +500,13 @@ final class CarViewModel: ObservableObject {
         refreshNow()
     }
 
+    /// Удаление аккаунта: сервер стирает учётку, приложение выходит.
+    func deleteAccount(password: String) async throws {
+        do { try await repo.deleteAccount(password: password) }
+        catch { throw RepoError(authError(error, fallback: "Не удалось удалить аккаунт")) }
+        logout()
+    }
+
     func logout() {
         repo.logout()
         loggedIn = false

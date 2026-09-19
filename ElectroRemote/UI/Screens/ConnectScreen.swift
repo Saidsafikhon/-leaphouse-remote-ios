@@ -28,7 +28,7 @@ struct ConnectScreen: View {
             HStack { Spacer(); HelpFab { showHelp = true } }
             Spacer()
 
-            Text("LEAPHOUSE REMOTE").font(ElectroType.overline).kerning(1.1).foregroundStyle(p.accent)
+            Text("LEAPREMOTE").font(ElectroType.overline).kerning(1.1).foregroundStyle(p.accent)
             Spacer().frame(height: Space.x2)
             Text(chosen?.model ?? "C16").font(ElectroType.display).foregroundStyle(p.textPrimary)
             if let name = chosen?.name, !name.isEmpty {

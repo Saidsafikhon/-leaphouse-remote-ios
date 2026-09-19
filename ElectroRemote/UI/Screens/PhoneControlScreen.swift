@@ -260,7 +260,7 @@ private struct HeaderLockup: View {
     var body: some View {
         HStack(alignment: .top) {
             VStack(alignment: .leading, spacing: Space.x1) {
-                Text("LEAPHOUSE REMOTE").font(ElectroType.overline).kerning(1.1).foregroundStyle(p.accent)
+                Text("LEAPREMOTE").font(ElectroType.overline).kerning(1.1).foregroundStyle(p.accent)
                 Text(model).font(ElectroType.display).foregroundStyle(p.textPrimary)
                 Button(action: onRefresh) {
                     HStack(spacing: 6) {

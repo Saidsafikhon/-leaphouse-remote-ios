@@ -154,6 +154,12 @@ final class CarRepository {
         return v
     }
 
+    /// Удалить свой аккаунт на сервере (необратимо). После — локальный выход.
+    func deleteAccount(password: String) async throws {
+        try await cloud.deleteAccount(AccountDeleteRequest(current_password: password))
+        settings.logout()
+    }
+
     func logout() { settings.logout() }
 
     // --- парк ---

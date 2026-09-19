@@ -1,4 +1,4 @@
-# Сборка iOS-клиента Leaphouse Remote на macOS-раннере GitHub.
+# Сборка iOS-клиента LeapRemote на macOS-раннере GitHub.
 #
 # Без Apple Developer подписать нечем, поэтому job собирает:
 #   1) под симулятор — проверка, что код компилируется;
@@ -51,12 +51,12 @@ jobs:
 
       - name: Package unsigned .ipa
         run: |
-          APP=build/Build/Products/Release-iphoneos/ElectroRemote.app
+          APP=build/Build/Products/Release-iphoneos/LeapRemote.app
           test -d "$APP"
           rm -rf Payload && mkdir Payload && cp -R "$APP" Payload/
           VERSION=$(/usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" "$APP/Info.plist")
           BUILD=$(/usr/libexec/PlistBuddy -c "Print CFBundleVersion" "$APP/Info.plist")
-          zip -qr "ElectroRemote-${VERSION}-${BUILD}-unsigned.ipa" Payload
+          zip -qr "LeapRemote-${VERSION}-${BUILD}-unsigned.ipa" Payload
           ls -la *.ipa
 
       # Ошибки компиляции — аннотациями и в summary: их видно без входа в GitHub.
@@ -82,15 +82,15 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           IPA=$(ls *.ipa | head -1)
-          gh release view latest >/dev/null 2>&1 || gh release create latest --title "Leaphouse Remote iOS (unsigned)" --notes "Последняя неподписанная сборка с main. Подписать Sideloadly/AltStore." --latest
+          gh release view latest >/dev/null 2>&1 || gh release create latest --title "LeapRemote iOS (unsigned)" --notes "Последняя неподписанная сборка с main. Подписать Sideloadly/AltStore." --latest
           gh release upload latest "$IPA" --clobber
-          cp "$IPA" ElectroRemote-latest-unsigned.ipa
-          gh release upload latest ElectroRemote-latest-unsigned.ipa --clobber
+          cp "$IPA" LeapRemote-latest-unsigned.ipa
+          gh release upload latest LeapRemote-latest-unsigned.ipa --clobber
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ElectroRemote-unsigned-ipa
+          name: LeapRemote-unsigned-ipa
           path: |
             *.ipa
             sim-build.log

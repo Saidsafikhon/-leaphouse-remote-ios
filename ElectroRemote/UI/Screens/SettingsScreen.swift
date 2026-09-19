@@ -16,6 +16,10 @@ struct SettingsScreen: View {
     @State private var dialog: DialogSpec? = nil
     @State private var scanning = false
     @State private var pairMsg: String? = nil
+    @State private var deleting = false
+    @State private var deletePassword = ""
+    @State private var deleteError: String? = nil
+    @State private var deleteBusy = false
 
     var body: some View {
         ScreenScaffold(title: "Настройки", onBack: onClose) {
@@ -24,6 +28,10 @@ struct SettingsScreen: View {
                     Text("Вход выполнен: " + (vm.settings.email ?? "—")).font(.system(size: 14)).foregroundStyle(p.textPrimary)
                     Button { vm.logout() } label: {
                         Text("Выйти из аккаунта").font(ElectroType.body).foregroundStyle(p.danger)
+                    }
+                    .buttonStyle(.plain)
+                    Button { deletePassword = ""; deleteError = nil; deleting = true } label: {
+                        Text("Удалить аккаунт").font(ElectroType.caption).foregroundStyle(p.textMuted)
                     }
                     .buttonStyle(.plain)
                 }
@@ -80,8 +88,23 @@ struct SettingsScreen: View {
                 }
             }
 
+            HStack(spacing: Space.x4) {
+                Link("Политика конфиденциальности", destination: Links.privacy)
+                Link("Поддержка", destination: Links.support)
+            }
+            .font(ElectroType.caption).foregroundStyle(p.textMuted).frame(maxWidth: .infinity)
             Text(appVersion()).font(ElectroType.caption).foregroundStyle(p.textMuted)
-                .frame(maxWidth: .infinity).padding(.top, Space.x2)
+                .frame(maxWidth: .infinity).padding(.top, Space.x1)
+        }
+        .sheet(isPresented: $deleting) {
+            DeleteAccountSheet(password: $deletePassword, error: deleteError, busy: deleteBusy) {
+                deleteBusy = true; deleteError = nil
+                Task {
+                    do { try await vm.deleteAccount(password: deletePassword); deleting = false }
+                    catch { deleteError = (error as? RepoError)?.message ?? "Не удалось удалить аккаунт" }
+                    deleteBusy = false
+                }
+            }
         }
         .onAppear {
             email = vm.settings.email ?? ""
@@ -151,6 +174,35 @@ private struct VehicleRow: View {
             .buttonStyle(.plain)
         }
         .padding(.vertical, 4)
+    }
+}
+
+/// Удаление аккаунта: предупреждение, пароль, красная кнопка.
+private struct DeleteAccountSheet: View {
+    @Environment(\.palette) private var p
+    @Environment(\.dismiss) private var dismiss
+    @Binding var password: String
+    let error: String?
+    let busy: Bool
+    let onConfirm: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Space.x3) {
+            Text("Удалить аккаунт?").font(ElectroType.headline).foregroundStyle(p.textPrimary)
+            Text("Учётная запись, доступ к машинам, сцены и расписания будут удалены с сервера без возможности восстановления. Сами машины останутся в парке.")
+                .font(ElectroType.body).foregroundStyle(p.textSecondary)
+            AuthField(label: "ПАРОЛЬ ДЛЯ ПОДТВЕРЖДЕНИЯ", value: $password, secure: true, contentType: .password)
+            if let error { ElectroToast(kind: .failed, title: error) }
+            HStack(spacing: Space.x2) {
+                ElectroButton(text: "Отмена", style: .ghost, enabled: !busy) { dismiss() }
+                ElectroButton(text: "Удалить навсегда", style: .danger, enabled: password.count >= MIN_PASSWORD && !busy, loading: busy, action: onConfirm)
+            }
+            Spacer()
+        }
+        .padding(Space.x6)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .background(p.surfaceElevated)
+        .presentationDetents([.medium, .large])
     }
 }
 

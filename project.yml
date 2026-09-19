@@ -28,7 +28,7 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: uz.electro.remote
-        PRODUCT_NAME: ElectroRemote
+        PRODUCT_NAME: LeapRemote
         INFOPLIST_FILE: ElectroRemote/Info.plist
         GENERATE_INFOPLIST_FILE: NO
         # Подпись задаётся снаружи (CI/Xcode): без Apple Developer собираем неподписанный архив.

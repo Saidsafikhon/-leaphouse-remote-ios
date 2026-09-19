@@ -17,7 +17,7 @@ struct QRScannerScreen: View {
                 VStack(spacing: Space.x4) {
                     Image(systemName: "camera.fill").font(.system(size: 40)).foregroundStyle(p.textMuted)
                     Text("Нет доступа к камере").font(ElectroType.headline).foregroundStyle(.white)
-                    Text("Разрешите камеру в Настройках iOS → Leaphouse Remote, чтобы сканировать QR.")
+                    Text("Разрешите камеру в Настройках iOS → LeapRemote, чтобы сканировать QR.")
                         .font(ElectroType.body).foregroundStyle(p.textSecondary).multilineTextAlignment(.center)
                     ElectroButton(text: "Открыть настройки", style: .secondary) {
                         if let u = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(u) }

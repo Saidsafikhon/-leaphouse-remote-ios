@@ -69,6 +69,7 @@ struct UserDto: Decodable {
 struct RegisterResponse: Decodable { let user: UserDto; let access_token: String; let expires_in: Int? }
 
 struct PasswordResetRequest: Encodable { let email: String; let contact: String? }
+struct AccountDeleteRequest: Encodable { let current_password: String }
 struct PasswordResetAccepted: Decodable { let detail: String? }
 
 struct PairClaimRequest: Encodable { let code: String }
@@ -303,6 +304,7 @@ final class CloudClient {
     func register(_ body: RegisterRequest) async throws -> RegisterResponse { try await perform("POST", "api/v1/auth/register", body: body) }
     func requestPasswordReset(_ body: PasswordResetRequest) async throws -> PasswordResetAccepted { try await perform("POST", "api/v1/auth/password-reset", body: body) }
     func pairClaim(_ body: PairClaimRequest) async throws -> VehicleDto { try await perform("POST", "api/v1/pairing/claim", body: body) }
+    func deleteAccount(_ body: AccountDeleteRequest) async throws { let _: Empty = try await perform("POST", "api/v1/auth/delete-account", body: body) }
     func support() async throws -> SupportDto { try await perform("GET", "api/v1/agent/support") }
 
     // --- машины ---

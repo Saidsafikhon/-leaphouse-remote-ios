@@ -137,7 +137,7 @@ struct LoginScreen: View {
         ScrollView {
             VStack(spacing: 0) {
                 Spacer().frame(height: Space.x8 * 2)
-                Text("LEAPHOUSE REMOTE").font(.system(size: 28, weight: .bold)).foregroundStyle(p.accent)
+                Text("LEAPREMOTE").font(.system(size: 28, weight: .bold)).foregroundStyle(p.accent)
                     .multilineTextAlignment(.center).frame(maxWidth: .infinity)
                 Spacer().frame(height: Space.x1)
                 Text("Управление вашим Leapmotor C16").font(.system(size: 14)).foregroundStyle(p.textSecondary)
@@ -184,7 +184,10 @@ struct LoginScreen: View {
                         busy = false
                     }
                 }
-                Spacer().frame(height: Space.x8)
+                Spacer().frame(height: Space.x6)
+                Link("Политика конфиденциальности", destination: Links.privacy)
+                    .font(ElectroType.caption).foregroundStyle(p.textMuted).frame(maxWidth: .infinity)
+                Spacer().frame(height: Space.x4)
             }
             .padding(.horizontal, Space.x6)
         }

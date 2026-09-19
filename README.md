@@ -1,4 +1,4 @@
-# Leaphouse Remote — iOS
+# LeapRemote — iOS
 
 Порт Android-клиента `phone-android` 0.38.19 (репозиторий leojkee/electro) на SwiftUI один в один: те же
 экраны, тот же backend (`https://leapmotor.evon.uz`), та же карта команд.

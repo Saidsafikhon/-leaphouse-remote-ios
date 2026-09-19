@@ -157,10 +157,16 @@ enum ControlSize {
     static let button: CGFloat = 48
 }
 
-/// Строка версии для подвалов: «Leaphouse Remote 0.38.19 (75)».
+/// Публичные страницы сайта: политика конфиденциальности и поддержка.
+enum Links {
+    static let privacy = URL(string: "https://leapmotor.evon.uz/privacy")!
+    static let support = URL(string: "https://leapmotor.evon.uz/support")!
+}
+
+/// Строка версии для подвалов: «LeapRemote 0.38.19 (75)».
 func appVersion() -> String {
     let info = Bundle.main.infoDictionary
     let v = info?["CFBundleShortVersionString"] as? String ?? "?"
     let b = info?["CFBundleVersion"] as? String ?? "?"
-    return "Leaphouse Remote \(v) (\(b))"
+    return "LeapRemote \(v) (\(b))"
 }
