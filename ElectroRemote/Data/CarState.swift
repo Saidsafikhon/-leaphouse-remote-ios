@@ -1,7 +1,7 @@
 import Foundation
 
 /// Канал, по которому сейчас доступна машина.
-enum Link { case none, cloud }
+enum CarLink { case none, cloud }
 
 struct GeoPoint: Equatable {
     let lat: Double
@@ -22,7 +22,7 @@ enum Security { case armed, disarmed, unknown }
 
 /// Разобранное состояние машины — зеркало `CarState.kt`.
 struct CarState: Equatable {
-    var link: Link = .none
+    var link: CarLink = .none
     var raw: [String: String] = [:]
     var security: Security = .unknown
     var vin: String? = nil
