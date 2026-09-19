@@ -70,6 +70,17 @@ struct RegisterResponse: Decodable { let user: UserDto; let access_token: String
 
 struct PasswordResetRequest: Encodable { let email: String; let contact: String? }
 struct AccountDeleteRequest: Encodable { let current_password: String }
+struct PushTokenBody: Encodable { let platform: String; let token: String }
+struct PushTokenRemove: Encodable { let token: String }
+
+/// Новость или уведомление из админки.
+struct NewsItem: Decodable, Identifiable, Equatable {
+    let id: String
+    let title: String
+    let body: String
+    let kind: String      // info | news | alert
+    let created_at: String
+}
 struct PasswordResetAccepted: Decodable { let detail: String? }
 
 struct PairClaimRequest: Encodable { let code: String }
@@ -305,6 +316,9 @@ final class CloudClient {
     func requestPasswordReset(_ body: PasswordResetRequest) async throws -> PasswordResetAccepted { try await perform("POST", "api/v1/auth/password-reset", body: body) }
     func pairClaim(_ body: PairClaimRequest) async throws -> VehicleDto { try await perform("POST", "api/v1/pairing/claim", body: body) }
     func deleteAccount(_ body: AccountDeleteRequest) async throws { let _: Empty = try await perform("POST", "api/v1/auth/delete-account", body: body) }
+    func registerPushToken(platform: String, token: String) async throws { let _: Empty = try await perform("POST", "api/v1/auth/push-token", body: PushTokenBody(platform: platform, token: token)) }
+    func removePushToken(_ token: String) async throws { let _: Empty = try await perform("DELETE", "api/v1/auth/push-token", body: PushTokenRemove(token: token)) }
+    func news() async throws -> [NewsItem] { try await perform("GET", "api/v1/news?limit=50") }
     func support() async throws -> SupportDto { try await perform("GET", "api/v1/agent/support") }
 
     // --- машины ---

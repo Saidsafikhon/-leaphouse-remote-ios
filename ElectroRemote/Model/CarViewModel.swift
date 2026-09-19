@@ -52,6 +52,9 @@ final class CarViewModel: ObservableObject {
     @Published private(set) var schedules: [ClimateScheduleDto] = []
     @Published private(set) var voiceIntents: [VoiceIntentDto] = []
     @Published private(set) var support: SupportDto? = nil
+    /// Лента новостей и уведомлений из админки.
+    @Published private(set) var news: [NewsItem] = []
+    @Published private(set) var newsSeen: String = Settings.shared.newsSeen
     /// Меняется при смене ника — чтобы список перерисовался.
     @Published private(set) var nickVersion = 0
 
@@ -80,8 +83,22 @@ final class CarViewModel: ObservableObject {
         loggedIn = settings.loggedIn
         vehicleId = settings.vehicleId
         optimistic = settings.optimistic
-        if settings.loggedIn { loadVehicles() }
+        if settings.loggedIn { loadVehicles(); loadNews(); PushRegistrar.shared.enable() }
         loadSupport()
+        PushRegistrar.shared.onNotification = { [weak self] in Task { @MainActor in self?.loadNews() } }
+    }
+
+    // --- новости и push ---
+
+    var unreadNews: Int { news.filter { $0.created_at > newsSeen }.count }
+
+    func loadNews() { Task { news = await repo.news() } }
+
+    /// Открыли ленту — всё, что в ней есть, считается прочитанным.
+    func markNewsSeen() {
+        guard let newest = news.map({ $0.created_at }).max() else { return }
+        settings.newsSeen = newest
+        newsSeen = newest
     }
 
     var selectedVehicle: VehicleDto? { vehicles.first { $0.vehicle_id == vehicleId } }
@@ -247,6 +264,7 @@ final class CarViewModel: ObservableObject {
             scenes = await repo.scenes()
             schedules = await repo.climateSchedules()
             voiceIntents = await repo.voiceIntents()
+            news = await repo.news()
         }
     }
 
@@ -498,6 +516,8 @@ final class CarViewModel: ObservableObject {
         vehicleId = settings.vehicleId
         loadVehicles()
         refreshNow()
+        loadNews()
+        PushRegistrar.shared.enable()
     }
 
     /// Удаление аккаунта: сервер стирает учётку, приложение выходит.
@@ -508,7 +528,9 @@ final class CarViewModel: ObservableObject {
     }
 
     func logout() {
+        Task { await PushRegistrar.shared.forget() }
         repo.logout()
+        news = []
         loggedIn = false
         vehicles = []
         vehicleId = nil

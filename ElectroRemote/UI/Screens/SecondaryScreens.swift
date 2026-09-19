@@ -258,6 +258,61 @@ struct VoiceScreen: View {
     }
 }
 
+// MARK: - Новости и уведомления
+
+/// Лента из админки: новости, уведомления, важное. Новое — сверху.
+struct NewsScreen: View {
+    @Environment(\.palette) private var p
+    let items: [NewsItem]
+    let onBack: () -> Void
+    let onRefresh: () -> Void
+
+    var body: some View {
+        ScreenScaffold(title: "Новости", onBack: onBack) {
+            if items.isEmpty {
+                EmptyNote(text: "Пока ничего нет. Здесь появятся новости и уведомления от оператора.")
+            }
+            ForEach(items) { n in
+                let st = style(n.kind)
+                HStack(alignment: .top, spacing: Space.x3) {
+                    Image(systemName: st.0).font(.system(size: 17, weight: .medium)).foregroundStyle(st.1)
+                        .frame(width: 36, height: 36).background(st.1.opacity(0.14)).clipShape(Circle())
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(n.title).font(ElectroType.body).foregroundStyle(p.textPrimary)
+                        if !n.body.isEmpty {
+                            Text(n.body).font(ElectroType.caption).foregroundStyle(p.textSecondary)
+                        }
+                        Text(newsDate(n.created_at)).font(ElectroType.unit).foregroundStyle(p.textMuted)
+                    }
+                    Spacer(minLength: 0)
+                }
+                .padding(Space.x4)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(p.surface)
+                .clipShape(RoundedRectangle(cornerRadius: Radius.md, style: .continuous))
+            }
+        }
+        .refreshable { onRefresh() }
+        .onAppear(perform: onRefresh)
+    }
+
+    private func style(_ kind: String) -> (String, Color) {
+        switch kind {
+        case "alert": return ("exclamationmark.triangle", p.warn)
+        case "news": return ("newspaper", p.info)
+        default: return ("bell", p.accent)
+        }
+    }
+}
+
+private func newsDate(_ iso: String) -> String {
+    let f = ISO8601DateFormatter(); f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+    let f2 = ISO8601DateFormatter(); f2.formatOptions = [.withInternetDateTime]
+    guard let d = f.date(from: iso) ?? f2.date(from: iso) else { return "" }
+    let out = DateFormatter(); out.locale = Locale(identifier: "ru_RU"); out.dateFormat = "d MMMM, HH:mm"
+    return out.string(from: d)
+}
+
 // MARK: - Карта
 
 /// Карта с локацией машины: MapKit вместо статичной картинки, «Маршрут» — в Apple Maps.

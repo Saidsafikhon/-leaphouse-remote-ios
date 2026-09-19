@@ -2,6 +2,7 @@ import SwiftUI
 
 @main
 struct ElectroRemoteApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var vm = CarViewModel()
 
     var body: some Scene {

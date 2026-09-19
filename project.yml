@@ -25,12 +25,14 @@ targets:
       - path: ElectroRemote
         excludes:
           - "Info.plist"
+          - "ElectroRemote.entitlements"
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: uz.electro.remote
         PRODUCT_NAME: LeapRemote
         INFOPLIST_FILE: ElectroRemote/Info.plist
         GENERATE_INFOPLIST_FILE: NO
+        CODE_SIGN_ENTITLEMENTS: ElectroRemote/ElectroRemote.entitlements
         # Подпись задаётся снаружи (CI/Xcode): без Apple Developer собираем неподписанный архив.
         CODE_SIGN_STYLE: Manual
         CODE_SIGN_IDENTITY: ""

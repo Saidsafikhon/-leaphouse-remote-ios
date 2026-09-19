@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Вкладки главного экрана.
-enum HomeTab: Equatable { case car, climate, seats, map, settings, scenes, schedule, voice }
+enum HomeTab: Equatable { case car, climate, seats, map, settings, scenes, schedule, voice, news }
 
 /// Главный экран по обложке: марка и модель → фото машины → полоса состояния →
 /// быстрые действия → климат и сиденья → входы в разделы.
@@ -65,6 +65,9 @@ struct PhoneControlScreen: View {
                         )
                     case .voice:
                         VoiceScreen(intents: vm.voiceIntents, onRun: { vm.runVoice($0) }, onBack: { tab = .car })
+                    case .news:
+                        NewsScreen(items: vm.news, onBack: { tab = .car }, onRefresh: { vm.loadNews() })
+                            .onAppear { vm.markNewsSeen() }
                     case .car:
                         HomeTabView(
                             car: vm.car,
@@ -74,6 +77,7 @@ struct PhoneControlScreen: View {
                             controls: controls,
                             stateOf: stateOf,
                             seatPresetSet: vm.seatPresetSet(),
+                            unreadNews: vm.unreadNews,
                             onDisconnect: { vm.disconnect() },
                             onSendAll: { cmds, label in vm.send(cmds, label: label) },
                             onRefresh: { vm.refreshNow() },
@@ -147,6 +151,7 @@ private struct HomeTabView: View {
     let controls: [Int: String]
     let stateOf: (Int) -> ControlState
     let seatPresetSet: Bool
+    let unreadNews: Int
     let onDisconnect: () -> Void
     let onSendAll: ([VehicleCommand], String) -> Void
     let onRefresh: () -> Void
@@ -160,7 +165,8 @@ private struct HomeTabView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Space.x5) {
-                HeaderLockup(car: car, model: model, onHelp: { showHelp = true }, onRefresh: onRefresh, onDisconnect: onDisconnect)
+                HeaderLockup(car: car, model: model, unread: unreadNews, onHelp: { showHelp = true },
+                             onNews: { onOpen(.news) }, onRefresh: onRefresh, onDisconnect: onDisconnect)
                 Hero(car: car)
                 CarStatusStrip(car: car)
 
@@ -253,7 +259,9 @@ private struct HeaderLockup: View {
     @Environment(\.palette) private var p
     let car: CarState
     let model: String
+    let unread: Int
     let onHelp: () -> Void
+    let onNews: () -> Void
     let onRefresh: () -> Void
     let onDisconnect: () -> Void
 
@@ -273,9 +281,36 @@ private struct HeaderLockup: View {
             Spacer()
             VStack(alignment: .trailing, spacing: Space.x2) {
                 DisconnectChip(action: onDisconnect)
-                HelpFab(action: onHelp)
+                HStack(spacing: Space.x2) {
+                    NewsBell(unread: unread, action: onNews)
+                    HelpFab(action: onHelp)
+                }
             }
         }
+    }
+}
+
+/// Колокольчик «Новости» с точкой непрочитанных.
+private struct NewsBell: View {
+    @Environment(\.palette) private var p
+    let unread: Int
+    let action: () -> Void
+    var body: some View {
+        Button(action: action) {
+            ZStack(alignment: .topTrailing) {
+                Image(systemName: "bell").font(.system(size: 18, weight: .medium)).foregroundStyle(unread > 0 ? p.accent : p.textSecondary)
+                    .frame(width: 44, height: 44)
+                    .background(p.surfaceElevated)
+                    .clipShape(Circle())
+                if unread > 0 {
+                    Text(unread > 9 ? "9+" : "\(unread)").font(.system(size: 10, weight: .bold)).foregroundStyle(p.onAccent)
+                        .padding(.horizontal, 5).frame(height: 16)
+                        .background(p.accent).clipShape(Capsule())
+                        .offset(x: 4, y: -2)
+                }
+            }
+        }
+        .buttonStyle(.plain)
     }
 }
 

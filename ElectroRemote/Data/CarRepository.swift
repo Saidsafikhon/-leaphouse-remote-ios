@@ -160,6 +160,8 @@ final class CarRepository {
         settings.logout()
     }
 
+    func news() async -> [NewsItem] { (try? await cloud.news()) ?? [] }
+
     func logout() { settings.logout() }
 
     // --- парк ---
