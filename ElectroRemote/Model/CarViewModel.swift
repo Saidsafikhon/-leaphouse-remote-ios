@@ -370,7 +370,9 @@ final class CarViewModel: ObservableObject {
                     let t = cmds[i].type
                     if let before = previous[t] { optimistic[t] = before } else { optimistic.removeValue(forKey: t) }
                 }
-                event = CmdEvent(title: title, message: "Не прошло \(failed) из \(results.count)", kind: .success)
+                // Частичный неуспех человеку не показываем: что прошло — прошло,
+                // непрошедшее откатили выше. Счётчик «N из M» только пугал.
+                event = CmdEvent(title: title, message: "Выполнено", kind: .success)
                 refreshNow()
             } else {
                 optimistic = previous

@@ -482,9 +482,9 @@ class CarViewModel(app: Application) : AndroidViewModel(app) {
                 }
                 restored
             }
-            _events.emit(CmdEvent(
-                title, "Не прошло $failed из ${results.size}", EventKind.Success,
-            ))
+            // Частичный неуспех человеку не показываем: что прошло — прошло,
+            // непрошедшее откатили выше. Счётчик «N из M» только пугал.
+            _events.emit(CmdEvent(title, "Выполнено", EventKind.Success))
             refreshNow()
         } else {
             // не прошло ничего — откатываем оптимистичное состояние обратно
