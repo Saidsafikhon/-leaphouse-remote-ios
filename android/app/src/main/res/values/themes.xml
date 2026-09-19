@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      Тема окна, а не экранов: цвета рисует Compose (ui/theme/Theme.kt), здесь
+      важен только фон окна — его видно в те доли секунды, пока композиция ещё
+      не нарисована, и в системных снимках задач. Дневной вариант светлый,
+      ночной лежит в values-night и выбирается системой — тем же
+      переключателем, что и палитра приложения.
+    -->
+    <style name="Theme.Electro" parent="@android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">#FFF2F5F7</item>
+    </style>
+</resources>

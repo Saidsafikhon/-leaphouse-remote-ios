@@ -5,3 +5,8 @@ Payload/
 *.ipa
 *.log
 .DS_Store
+android/local.properties
+android/build/
+android/app/build/
+android/.gradle/
+android/app/google-services.json

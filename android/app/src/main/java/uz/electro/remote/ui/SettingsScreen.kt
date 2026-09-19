@@ -1,0 +1,291 @@
+package uz.electro.remote.ui
+
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AddCircleOutline
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.journeyapps.barcodescanner.ScanContract
+import com.journeyapps.barcodescanner.ScanOptions
+import kotlinx.coroutines.launch
+import uz.electro.remote.BuildConfig
+import uz.electro.remote.CarViewModel
+import uz.electro.remote.data.Settings
+import uz.electro.remote.data.VehicleDto
+import uz.electro.remote.ui.components.ElectroDialog
+import uz.electro.remote.ui.components.SectionCard
+import uz.electro.remote.ui.theme.*
+
+/** Строка версии для подвалов: «LeapRemote 0.38.0 (49)». */
+fun appVersion(): String =
+    "LeapRemote " + BuildConfig.VERSION_NAME + " (" + BuildConfig.VERSION_CODE + ")"
+
+/**
+ * Полноэкранные настройки: вход в аккаунт, управление машинами (добавить,
+ * выбрать, переименовать, отвязать), адрес сервера и выход.
+ *
+ * Переименование — локальное, только в этом телефоне: имя машины на сервере
+ * общее для всего парка, и менять его водителю значило бы переименовать её у
+ * всех. Отвязка снимает доступ у аккаунта, сама машина остаётся.
+ */
+@Composable
+fun SettingsScreen(vm: CarViewModel, onClose: () -> Unit) {
+    val settings = vm.settings
+    val loggedIn by vm.loggedIn.collectAsState()
+    val busy by vm.busy.collectAsState()
+    val vehicles by vm.vehicles.collectAsState()
+    val vehicleId by vm.vehicleId.collectAsState()
+    val parkNote by vm.parkNote.collectAsState()
+
+    LaunchedEffect(loggedIn) { if (loggedIn) vm.loadVehicles() }
+
+    var email by remember { mutableStateOf(settings.email.orEmpty()) }
+    var password by remember { mutableStateOf("") }
+    var error by remember { mutableStateOf<String?>(null) }
+
+    var renaming by remember { mutableStateOf<VehicleDto?>(null) }
+    var deleting by remember { mutableStateOf(false) }
+    val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
+    var confirmDrop by remember { mutableStateOf<VehicleDto?>(null) }
+
+    val scope = rememberCoroutineScope()
+    var pairMsg by remember { mutableStateOf<String?>(null) }
+    val scanLauncher = rememberLauncherForActivityResult(ScanContract()) { result ->
+        val payload = result.contents ?: return@rememberLauncherForActivityResult
+        pairMsg = null
+        scope.launch {
+            vm.claimPairing(payload)
+                .onSuccess { pairMsg = "Машина привязана" }
+                .onFailure { pairMsg = it.message ?: "Не удалось привязать машину" }
+        }
+    }
+
+    ScreenScaffold("Настройки", onClose) {
+        if (loggedIn) {
+            SectionCard("Аккаунт") {
+                Text("Вход выполнен: " + (settings.email ?: "—"),
+                    color = ElectroColors.TextPrimary, fontSize = 14.sp)
+                TextButton(onClick = { vm.logout() }, contentPadding = PaddingValues(0.dp)) {
+                    Text("Выйти из аккаунта", color = ElectroColors.Danger)
+                }
+                TextButton(onClick = { deleting = true }, contentPadding = PaddingValues(0.dp)) {
+                    Text("Удалить аккаунт", color = ElectroColors.TextMuted, fontSize = 12.sp)
+                }
+            }
+
+            SectionCard("Мои машины", action = "Обновить", onAction = { vm.loadVehicles() }) {
+                if (vehicles.isEmpty()) {
+                    Text(parkNote ?: "Машин нет — добавьте по QR с экрана машины.",
+                        color = ElectroColors.TextMuted, fontSize = 12.sp)
+                }
+                vehicles.forEach { vehicle ->
+                    VehicleRow(
+                        vehicle = vehicle,
+                        nick = vm.vehicleNick(vehicle.vehicle_id),
+                        selected = vehicle.vehicle_id == vehicleId,
+                        onSelect = { vm.selectVehicle(vehicle.vehicle_id) },
+                        onRename = { renaming = vehicle },
+                        onDrop = { confirmDrop = vehicle },
+                    )
+                }
+                TextButton(
+                    onClick = {
+                        scanLauncher.launch(
+                            ScanOptions().setPrompt("Наведите на QR на экране машины")
+                                .setBeepEnabled(false).setOrientationLocked(false)
+                        )
+                    },
+                    contentPadding = PaddingValues(0.dp),
+                ) {
+                    Icon(Icons.Outlined.AddCircleOutline, null, tint = ElectroColors.Accent,
+                        modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("Добавить машину", color = ElectroColors.Accent)
+                }
+                pairMsg?.let { Text(it, color = ElectroColors.TextSecondary, fontSize = 12.sp) }
+            }
+        } else {
+            SectionCard("Вход") {
+                OutlinedTextField(
+                    value = email, onValueChange = { email = it }, singleLine = true,
+                    label = { Text("Логин") }, modifier = Modifier.fillMaxWidth(), colors = fieldColors(),
+                )
+                OutlinedTextField(
+                    value = password, onValueChange = { password = it }, singleLine = true,
+                    label = { Text("Пароль") }, visualTransformation = PasswordVisualTransformation(),
+                    modifier = Modifier.fillMaxWidth(), colors = fieldColors(),
+                )
+                error?.let { Text(it, color = ElectroColors.Danger, fontSize = 13.sp) }
+                Button(
+                    onClick = { error = null; vm.login(email.trim(), password) { failure -> error = failure } },
+                    enabled = !busy && email.isNotBlank() && password.isNotBlank(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = ElectroColors.Accent, contentColor = ElectroColors.OnAccent),
+                    shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth(),
+                ) { Text("Войти", fontWeight = FontWeight.Bold) }
+            }
+        }
+
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+            Text("Политика конфиденциальности", style = ElectroType.Caption, color = ElectroColors.TextMuted,
+                modifier = Modifier.clickable { runCatching { uriHandler.openUri(Settings.PRIVACY_URL) } })
+            Spacer(Modifier.width(Space.x4))
+            Text("Поддержка", style = ElectroType.Caption, color = ElectroColors.TextMuted,
+                modifier = Modifier.clickable { runCatching { uriHandler.openUri(Settings.SUPPORT_URL) } })
+        }
+        Text(appVersion(), style = ElectroType.Caption, color = ElectroColors.TextMuted,
+            modifier = Modifier.fillMaxWidth().padding(top = Space.x1))
+    }
+
+    // --- удаление аккаунта: предупреждение, пароль, красная кнопка ---
+    if (deleting) {
+        var pass by remember { mutableStateOf("") }
+        var err by remember { mutableStateOf<String?>(null) }
+        var busyDel by remember { mutableStateOf(false) }
+        AlertDialog(
+            onDismissRequest = { if (!busyDel) deleting = false },
+            containerColor = ElectroColors.SurfaceElevated, tonalElevation = 0.dp,
+            title = { Text("Удалить аккаунт?", color = ElectroColors.TextPrimary) },
+            text = {
+                Column {
+                    Text("Учётная запись, доступ к машинам, сцены и расписания будут удалены с сервера без возможности восстановления. Сами машины останутся в парке.",
+                        color = ElectroColors.TextSecondary, fontSize = 13.sp)
+                    Spacer(Modifier.height(12.dp))
+                    OutlinedTextField(pass, { pass = it }, singleLine = true, label = { Text("Пароль для подтверждения") },
+                        visualTransformation = PasswordVisualTransformation(),
+                        modifier = Modifier.fillMaxWidth(), colors = fieldColors())
+                    err?.let { Spacer(Modifier.height(8.dp)); Text(it, color = ElectroColors.Danger, fontSize = 13.sp) }
+                }
+            },
+            confirmButton = {
+                TextButton(enabled = pass.length >= MIN_PASSWORD && !busyDel, onClick = {
+                    busyDel = true; err = null
+                    scope.launch {
+                        vm.deleteAccount(pass)
+                            .onSuccess { deleting = false }
+                            .onFailure { err = it.message ?: "Не удалось удалить аккаунт" }
+                        busyDel = false
+                    }
+                }) { Text(if (busyDel) "Удаляем…" else "Удалить навсегда", color = ElectroColors.Danger) }
+            },
+            dismissButton = {
+                TextButton(enabled = !busyDel, onClick = { deleting = false }) { Text("Отмена", color = ElectroColors.TextSecondary) }
+            },
+        )
+    }
+
+    // --- переименование (локальное имя) ---
+    renaming?.let { v ->
+        var name by remember(v) { mutableStateOf(vm.vehicleNick(v.vehicle_id) ?: v.name) }
+        AlertDialog(
+            onDismissRequest = { renaming = null },
+            containerColor = ElectroColors.SurfaceElevated, tonalElevation = 0.dp,
+            title = { Text("Имя машины", color = ElectroColors.TextPrimary) },
+            text = {
+                Column {
+                    Text("Показывается только в этом телефоне.",
+                        color = ElectroColors.TextMuted, fontSize = 12.sp)
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedTextField(name, { name = it }, singleLine = true,
+                        modifier = Modifier.fillMaxWidth(), colors = fieldColors())
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    vm.setVehicleNick(v.vehicle_id, name.takeIf { it.isNotBlank() && it != v.name })
+                    renaming = null
+                }) { Text("Сохранить", color = ElectroColors.Accent) }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    vm.setVehicleNick(v.vehicle_id, null); renaming = null
+                }) { Text("Сбросить", color = ElectroColors.TextSecondary) }
+            },
+        )
+    }
+
+    // --- подтверждение отвязки ---
+    confirmDrop?.let { v ->
+        ElectroDialog(
+            Icons.Outlined.Delete, ElectroColors.Danger,
+            "Отвязать машину?",
+            "«" + (vm.vehicleNick(v.vehicle_id) ?: v.name) + "» перестанет быть доступной этому " +
+                "аккаунту. Сама машина останется — доступ вернёт новый QR с её экрана.",
+            confirmText = "Отвязать",
+            onConfirm = { vm.unlinkVehicle(v.vehicle_id); confirmDrop = null },
+            onDismiss = { confirmDrop = null },
+        )
+    }
+}
+
+@Composable
+private fun Field(label: String, hint: String, value: String, onValueChange: (String) -> Unit) {
+    Column {
+        Text(label, color = ElectroColors.TextSecondary, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+        Text(hint, color = ElectroColors.TextMuted, fontSize = 12.sp)
+        Spacer(Modifier.height(6.dp))
+        OutlinedTextField(value = value, onValueChange = onValueChange, singleLine = true,
+            modifier = Modifier.fillMaxWidth(), colors = fieldColors())
+    }
+}
+
+@Composable
+private fun fieldColors() = OutlinedTextFieldDefaults.colors(
+    focusedTextColor = ElectroColors.TextPrimary,
+    unfocusedTextColor = ElectroColors.TextPrimary,
+    focusedBorderColor = ElectroColors.Accent,
+    unfocusedBorderColor = ElectroColors.SurfaceElevated,
+    focusedLabelColor = ElectroColors.Accent,
+    unfocusedLabelColor = ElectroColors.TextSecondary,
+    cursorColor = ElectroColors.Accent,
+)
+
+/** Строка машины: выбор радиокнопкой, имя (локальное поверх серверного), правка и отвязка. */
+@Composable
+private fun VehicleRow(
+    vehicle: VehicleDto,
+    nick: String?,
+    selected: Boolean,
+    onSelect: () -> Unit,
+    onRename: () -> Unit,
+    onDrop: () -> Unit,
+) {
+    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+        RadioButton(
+            selected = selected, onClick = onSelect,
+            colors = RadioButtonDefaults.colors(
+                selectedColor = ElectroColors.Accent, unselectedColor = ElectroColors.TextMuted),
+        )
+        Column(Modifier.weight(1f).clickable(onClick = onSelect)) {
+            Text(
+                nick ?: vehicle.name,
+                color = if (selected) ElectroColors.TextPrimary else ElectroColors.TextSecondary,
+                fontSize = 14.sp,
+                fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+            )
+            Text(
+                listOfNotNull(vehicle.model, vehicle.vin.takeIf { it.isNotBlank() }).joinToString(" · "),
+                color = ElectroColors.TextMuted, fontSize = 11.sp,
+            )
+        }
+        IconButton(onClick = onRename) {
+            Icon(Icons.Outlined.Edit, "Переименовать", tint = ElectroColors.TextSecondary,
+                modifier = Modifier.size(20.dp))
+        }
+        IconButton(onClick = onDrop) {
+            Icon(Icons.Outlined.Delete, "Отвязать", tint = ElectroColors.Danger,
+                modifier = Modifier.size(20.dp))
+        }
+    }
+}

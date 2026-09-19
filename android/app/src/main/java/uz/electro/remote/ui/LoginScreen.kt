@@ -1,0 +1,116 @@
+package uz.electro.remote.ui
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Visibility
+import androidx.compose.material.icons.outlined.VisibilityOff
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalUriHandler
+import uz.electro.remote.data.Settings
+import kotlinx.coroutines.launch
+import uz.electro.remote.CarViewModel
+import uz.electro.remote.ui.components.BadgeKind
+import uz.electro.remote.ui.components.ElectroButton
+import uz.electro.remote.ui.components.ElectroToast
+import uz.electro.remote.ui.theme.*
+
+/** Экран входа. Отсюда же уходят на регистрацию и восстановление пароля. */
+@Composable
+fun LoginScreen(
+    vm: CarViewModel,
+    onLoggedIn: () -> Unit,
+    onRegister: () -> Unit,
+    onForgot: () -> Unit,
+) {
+    val scope = rememberCoroutineScope()
+    // Почту помним между входами: меняется она куда реже, чем случается
+    // повторный вход, а набирать её на телефоне долго.
+    var email by remember { mutableStateOf(vm.settings.email.orEmpty()) }
+    var pass by remember { mutableStateOf("") }
+    var show by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf<String?>(null) }
+    var busy by remember { mutableStateOf(false) }
+    val uriHandler = LocalUriHandler.current
+
+    Column(
+        Modifier.fillMaxSize().background(ElectroColors.Background)
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = Space.x6),
+    ) {
+        Spacer(Modifier.height(Space.x8))
+        Spacer(Modifier.height(Space.x8))
+
+        Text("LEAPREMOTE", color = ElectroColors.Accent, fontSize = 28.sp,
+            fontWeight = FontWeight.Bold, textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth())
+        Spacer(Modifier.height(Space.x1))
+        Text("Управление вашим Leapmotor C16", color = ElectroColors.TextSecondary,
+            fontSize = 14.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+
+        Spacer(Modifier.height(Space.x8))
+
+        Field("EMAIL", email, { email = it }, KeyboardType.Email)
+        Spacer(Modifier.height(Space.x4))
+        Field("ПАРОЛЬ", pass, { pass = it }, KeyboardType.Password,
+            visual = if (show) VisualTransformation.None else PasswordVisualTransformation(),
+            trailing = {
+                IconButton(onClick = { show = !show }) {
+                    Icon(if (show) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
+                        null, tint = ElectroColors.TextSecondary)
+                }
+            })
+
+        if (error != null) {
+            Spacer(Modifier.height(Space.x3))
+            ElectroToast(BadgeKind.Failed, error!!, null)
+        }
+
+        Spacer(Modifier.height(Space.x4))
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text("Забыли пароль?", color = ElectroColors.TextSecondary, fontSize = 14.sp,
+                modifier = Modifier.clickable(enabled = !busy) { onForgot() }
+                    .padding(vertical = Space.x1))
+            Spacer(Modifier.weight(1f))
+            Text("Регистрация", color = ElectroColors.Accent, fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.clickable(enabled = !busy) { onRegister() }
+                    .padding(vertical = Space.x1))
+        }
+
+        Spacer(Modifier.height(Space.x8))
+
+        ElectroButton(
+            text = if (busy) "Входим…" else "Войти",
+            enabled = email.isNotBlank() && pass.isNotBlank(),
+            loading = busy,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            busy = true; error = null
+            scope.launch {
+                vm.signIn(email.trim(), pass)
+                    .onSuccess { onLoggedIn() }
+                    .onFailure { error = vm.authError(it, "Неверный email или пароль") }
+                busy = false
+            }
+        }
+
+        Spacer(Modifier.height(Space.x6))
+        Text("Политика конфиденциальности", style = ElectroType.Caption, color = ElectroColors.TextMuted,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth().clickable { runCatching { uriHandler.openUri(Settings.PRIVACY_URL) } })
+        Spacer(Modifier.height(Space.x4))
+    }
+}

@@ -1,0 +1,88 @@
+plugins { id 'com.android.application'; id 'org.jetbrains.kotlin.android' }
+android {
+    namespace 'uz.electro.remote'
+    compileSdk 34
+    defaultConfig {
+        applicationId "uz.electro.remote"
+        minSdk 26; targetSdk 34
+        // Нумерация продолжает линию слитых исходников (0.34.0, код 44), а не
+        // нашу прежнюю (0.19.0, код 25): в парке уже стоят сборки с кодами 32 и 44,
+        // и APK с меньшим кодом Android просто не поставит поверх них.
+        // 0.38.13: перезагрузка capabilities при смене машины — набор кнопок
+        //          под каждую модель (универсальность в связке с головой).
+        // 0.38.15: климат — круговой циферблат заменён горизонтальной полоской
+        //          LO 18° … HI 32° с градиентом синий→оранжевый.
+        // 0.38.16: климат — кнопки макс. охл/обогрев (сцены), обогрев стёкол,
+        //          циркуляция, обогрев зеркал, обдув лобового; климат больше не
+        //          блокируется при открытом багажнике.
+        // 0.38.17: циркуляция приоткрывает окна на 25%; тумблер климата и
+        //          активация сидений реагируют мгновенно (оптимистично); вкладка
+        //          климата прокручивается (picker времени больше не уходит за экран);
+        //          плитки климата одного размера; кнопка «Найти машину» на экране
+        //          подключения (шлёт команду отключения 3 раза).
+        // 0.38.18: таймеры (климат/сиденья) — полоска пальцем вместо ±, значение
+        //          запоминается; команды пачки шлём параллельно (быстрая активация
+        //          сидений); ползунок задних сидений вынесен под карточку (не
+        //          прячется); убран лишний текст «Время работы: N мин» в климате.
+        //          code 68: оптимистичное состояние сохраняется между запусками
+        //          (климат/функции больше не «сбрасываются в выкл» при перезаходе);
+        //          таймер сидений до 60 мин.
+        //          code 69: климату НИЧЕГО не мешает вкл/выкл (climateBlocker снят);
+        //          флаги сцен (макс.охл/обогрев, обогрев стёкол) сохраняются —
+        //          включил и выключаешь той же плиткой даже после перезахода.
+        // 0.39.0: LeapRemote — название и иконка, удаление аккаунта (App Store 5.1.1 /
+        //         Google Play), политика и поддержка, лента «Новости», push через FCM.
+        versionCode 76; versionName "0.39.0"
+        // Адреса backend здесь больше нет: он правится в самом приложении
+        // (Настройки → «Адрес сервера»), значение по умолчанию и подмена
+        // устаревших адресов живут в data/Settings.kt. Зашитый на сборке адрес
+        // означал бы, что смена сервера — это переустановка APK у всех.
+        // SHA-256 отпечаток release-сертификата. Пусто = проверка выключена.
+        // Задать: ./gradlew -PexpectedSig=AA:BB:...  (keytool -printcert), или в gradle.properties.
+        def expSig = (project.findProperty("expectedSig") ?: "").toString().replace(":", "").toUpperCase()
+        buildConfigField "String", "EXPECTED_SIG", "\"${expSig}\""
+    }
+    buildFeatures { compose true; buildConfig true }
+    composeOptions { kotlinCompilerExtensionVersion '1.5.8' }
+    buildTypes {
+        release {
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            // Приложение раздают файлом, а не через Play, и все установленные
+            // копии подписаны отладочным ключом. Свой release-ключ здесь
+            // означал бы, что обновление не встанет поверх: Android откажет по
+            // несовпадению подписи, и APK пришлось бы ставить с потерей
+            // настроек и входа. Заменить на настоящий keystore — вместе с
+            // выходом в Play, и тогда переустановка у всех разом неизбежна.
+            signingConfig signingConfigs.debug
+        }
+        debug {
+            minifyEnabled false
+        }
+    }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+    kotlinOptions { jvmTarget = '17' }
+}
+dependencies {
+    implementation platform('androidx.compose:compose-bom:2024.02.00')
+    implementation 'androidx.compose.material3:material3'
+    implementation 'androidx.compose.material:material-icons-extended'
+    implementation 'androidx.activity:activity-compose:1.8.2'
+    implementation 'androidx.core:core-ktx:1.12.0'
+    implementation 'androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0'
+    implementation 'com.squareup.retrofit2:retrofit:2.9.0'
+    implementation 'com.squareup.retrofit2:converter-moshi:2.9.0'
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+    implementation 'com.journeyapps:zxing-android-embedded:4.3.0'   // сканер QR
+    // Push через Firebase Cloud Messaging. Без google-services.json приложение
+    // собирается и работает, просто токен не выпускается (см. Push.kt).
+    implementation platform('com.google.firebase:firebase-bom:33.4.0')
+    implementation 'com.google.firebase:firebase-messaging'
+}
+
+// google-services.json кладут рядом с этим файлом, когда есть проект Firebase;
+// без него плагин не применяем — иначе сборка падает.
+if (file("google-services.json").exists()) {
+    apply plugin: 'com.google.gms.google-services'
+}

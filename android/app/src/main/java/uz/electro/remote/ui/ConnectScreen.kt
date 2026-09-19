@@ -1,0 +1,202 @@
+package uz.electro.remote.ui
+
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import uz.electro.remote.CarViewModel
+import uz.electro.remote.ConnectPhase
+import uz.electro.remote.ConnectStatus
+import uz.electro.remote.R
+import uz.electro.remote.ui.components.*
+import uz.electro.remote.ui.theme.*
+
+/**
+ * Экран подключения — первое, что видно при запуске.
+ *
+ * Приложение не открывается само: T-BOX держит модем в спящем режиме, поэтому
+ * по кнопке машину сперва будят через сервер — и только когда голова поднялась
+ * и ответила, пускаем внутрь. Иначе первые нажатия уходили бы в пустоту.
+ */
+@Composable
+fun ConnectScreen(vm: CarViewModel, status: ConnectStatus) {
+    var showSettings by remember { mutableStateOf(false) }
+
+    // Путь к машине один — сервер, поэтому никаких разрешений спрашивать не за
+    // что: SEND_SMS убран вместе с запасным каналом.
+    fun start() {
+        if (vm.wakeConfigured) vm.connect() else showSettings = true
+    }
+
+    // Настройки открываются полноэкранно ВМЕСТО экрана подключения. Раньше их
+    // рисовали перед Column подключения — и Column перекрывал их сверху, отчего
+    // кнопка «Настройки» будто «не реагировала» (экран открывался, но был не
+    // виден). Здесь настройки — единственное, что рисуется, пока они открыты.
+    if (showSettings) {
+        androidx.compose.material3.Surface(
+            color = ElectroColors.Background,
+            modifier = Modifier.fillMaxSize(),
+        ) { SettingsScreen(vm) { showSettings = false } }
+        return
+    }
+
+    val chosen by vm.selectedVehicle.collectAsState()
+    val support by vm.support.collectAsState()
+    var showHelp by remember { mutableStateOf(false) }
+    if (showHelp) HelpDialog(support) { showHelp = false }
+
+    Column(
+        Modifier.fillMaxSize().background(ElectroColors.Background)
+            .padding(horizontal = Space.x5).padding(top = Space.x6, bottom = Space.x5),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        // Помощь доступна и до подключения — кнопка в правом верхнем углу.
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            HelpFab(onClick = { showHelp = true })
+        }
+        Spacer(Modifier.weight(1f))
+
+        // тот же лозунг, что в шапке главного экрана: марка мелко, модель крупно
+        Text("LEAPREMOTE", style = ElectroType.Overline, color = ElectroColors.Accent)
+        Spacer(Modifier.height(Space.x2))
+        // Модель — выбранной машины: с несколькими машинами в парке подпись
+        // «C16» над C01 вводила бы в заблуждение ровно там, где это опасно.
+        Text(
+            chosen?.model ?: "C16",
+            style = ElectroType.Display,
+            color = ElectroColors.TextPrimary,
+        )
+        chosen?.name?.takeIf { it.isNotBlank() }?.let {
+            Spacer(Modifier.height(Space.x1))
+            Text(it, style = ElectroType.Body, color = ElectroColors.TextMuted)
+        }
+        Spacer(Modifier.height(Space.x6))
+
+        // Рендер машины идёт с тёмной подложкой, «вшитой» в PNG. На светлой теме
+        // голым он читался бы как тёмный прямоугольник — оформляем hero-карточкой
+        // со скруглением, и подложка выглядит намеренной в обеих темах.
+        Surface(
+            color = ElectroColors.SurfaceRaised,
+            shape = Radius.Lg,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Box {
+                Image(
+                    painterResource(R.drawable.car_01), null,
+                    modifier = Modifier.fillMaxWidth().height(200.dp),
+                    contentScale = ContentScale.Fit,
+                )
+                // статус подключения плашкой в углу hero — как на панели машины
+                Box(Modifier.fillMaxWidth().padding(Space.x3), contentAlignment = Alignment.TopEnd) {
+                    PhaseBadge(status)
+                }
+            }
+        }
+
+        Spacer(Modifier.height(Space.x5))
+        Text(
+            hint(status, vm.wakeConfigured),
+            style = ElectroType.Body,
+            color = ElectroColors.TextSecondary,
+            textAlign = TextAlign.Center,
+        )
+
+        if (status.phase == ConnectPhase.Waiting) {
+            Spacer(Modifier.height(Space.x4))
+            LinearProgressIndicator(
+                Modifier.fillMaxWidth().clip(Radius.Pill),
+                color = ElectroColors.Accent,
+                trackColor = ElectroColors.SurfaceElevated,
+            )
+        }
+
+        Spacer(Modifier.weight(1f))
+
+        when (status.phase) {
+            ConnectPhase.Idle -> {
+                ElectroButton("Подключиться", Modifier.fillMaxWidth()) { start() }
+                Spacer(Modifier.height(Space.x2))
+                ElectroButton(
+                    "Найти машину", Modifier.fillMaxWidth(),
+                    style = ButtonStyle.Secondary,
+                ) { vm.findCar() }
+            }
+
+            ConnectPhase.Sending, ConnectPhase.Waiting -> {
+                ElectroButton("Подключение", Modifier.fillMaxWidth(), loading = true) {}
+            }
+
+            ConnectPhase.Timeout -> {
+                ElectroButton("Разбудить ещё раз", Modifier.fillMaxWidth()) { start() }
+                Spacer(Modifier.height(Space.x2))
+                ElectroButton(
+                    "Всё равно открыть", Modifier.fillMaxWidth(),
+                    style = ButtonStyle.Secondary,
+                ) { vm.enterAnyway() }
+            }
+
+            ConnectPhase.Error -> {
+                ElectroButton("Повторить", Modifier.fillMaxWidth()) { start() }
+                Spacer(Modifier.height(Space.x2))
+                ElectroButton(
+                    "Всё равно открыть", Modifier.fillMaxWidth(),
+                    style = ButtonStyle.Ghost,
+                ) { vm.enterAnyway() }
+            }
+
+            ConnectPhase.Connected -> Unit
+        }
+
+        Spacer(Modifier.height(Space.x3))
+        ElectroButton(
+            if (vm.wakeConfigured) "Настройки" else "Настроить подключение",
+            Modifier.fillMaxWidth(),
+            style = ButtonStyle.Ghost,
+        ) { showSettings = true }
+        Spacer(Modifier.height(Space.x3))
+        Text(appVersion(), style = ElectroType.Caption, color = ElectroColors.TextMuted)
+        Spacer(Modifier.height(Space.x3))
+    }
+}
+
+@Composable
+private fun PhaseBadge(status: ConnectStatus) {
+    when (status.phase) {
+        ConnectPhase.Idle -> StatusBadge(BadgeKind.Offline, "СПИТ")
+        ConnectPhase.Sending -> StatusBadge(BadgeKind.Info, "БУДИМ МАШИНУ")
+        ConnectPhase.Waiting -> StatusBadge(BadgeKind.Unconfirmed, "ЖДЁМ ОТКЛИКА · ${status.waitedSec} С")
+        ConnectPhase.Timeout -> StatusBadge(BadgeKind.Timeout, "НЕ ОТОЗВАЛАСЬ")
+        ConnectPhase.Error -> StatusBadge(BadgeKind.Failed, "ОШИБКА")
+        ConnectPhase.Connected -> StatusBadge(BadgeKind.Online, "НА СВЯЗИ")
+    }
+}
+
+private fun hint(status: ConnectStatus, configured: Boolean): String = when {
+    !configured && status.phase == ConnectPhase.Idle ->
+        "Войдите на сервер в настройках — иначе будить машину нечем."
+    // На Idle сообщение появляется после отключения — рассказать, чем оно
+    // закончилось, больше негде: главный экран к этому моменту уже закрыт.
+    status.phase == ConnectPhase.Idle && status.message != null -> status.message
+    status.phase == ConnectPhase.Idle ->
+        "Модем машины спит. По кнопке сервер разбудит её, и она выйдет на связь."
+    status.phase == ConnectPhase.Sending -> "Отправляем команду пробуждения…"
+    // status.message говорит, каким путём машину разбудили: через пробуждалку,
+    // облако или SMS. Это стоит показать — пути отзываются по-разному.
+    status.phase == ConnectPhase.Waiting ->
+        (status.message ?: "Команда отправлена") + ". Машина обычно отзывается за 20–40 секунд."
+    status.phase == ConnectPhase.Timeout ->
+        (status.message ?: "Машина не ответила") +
+            ". Команда принята, но машина не вышла на связь: возможно, она вне зоны."
+    status.phase == ConnectPhase.Error -> status.message ?: "Не удалось разбудить машину"
+    else -> ""
+}
