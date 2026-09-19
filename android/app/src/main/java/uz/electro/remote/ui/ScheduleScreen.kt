@@ -1,5 +1,6 @@
 package uz.electro.remote.ui
 
+import uz.electro.remote.ui.components.Lx
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -80,7 +81,7 @@ private fun ScheduleRow(
                 ),
             )
             Spacer(Modifier.width(Space.x2))
-            Icon(Icons.Outlined.Delete, null, tint = ElectroColors.TextMuted,
+            Icon(Lx.Delete, null, tint = ElectroColors.TextMuted,
                 modifier = Modifier.size(22.dp).clickable(onClick = onDelete))
         }
     }

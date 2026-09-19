@@ -1,5 +1,6 @@
 package uz.electro.remote.ui
 
+import uz.electro.remote.ui.components.Lx
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
@@ -265,7 +266,7 @@ private fun HomeTab(
 
     confirm?.let { c ->
         ElectroDialog(
-            Icons.Outlined.Warning, ElectroColors.Warn, c.title, c.msg,
+            Lx.Warning, ElectroColors.Warn, c.title, c.msg,
             confirmText = c.action,
             onConfirm = { onSendAll(c.cmds, c.label); confirm = null },
             onDismiss = { confirm = null },
@@ -274,7 +275,7 @@ private fun HomeTab(
 
     blocked?.let { reason ->
         ElectroDialog(
-            Icons.Outlined.Warning, ElectroColors.Warn,
+            Lx.Warning, ElectroColors.Warn,
             "Климат не включаем", reason,
             confirmText = "Понятно",
             onConfirm = { blocked = null },
@@ -424,7 +425,7 @@ private fun HeaderLockup(
                 Modifier.clickable(onClick = onRefresh),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Icon(Icons.Outlined.Refresh, null, tint = ElectroColors.TextMuted,
+                Icon(Lx.Refresh, null, tint = ElectroColors.TextMuted,
                     modifier = Modifier.size(14.dp))
                 Spacer(Modifier.width(6.dp))
                 Text(updatedText(car), style = ElectroType.Caption, color = ElectroColors.TextMuted)
@@ -457,7 +458,7 @@ private fun DisconnectChip(onDisconnect: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
-            Icons.Outlined.PowerSettingsNew, null,
+            Lx.PowerSettingsNew, null,
             tint = ElectroColors.TextSecondary, modifier = Modifier.size(16.dp),
         )
         Spacer(Modifier.width(6.dp))
@@ -494,35 +495,35 @@ private fun CarStatusStrip(car: CarState) {
     }
     val (icon, title, subtitle, accent, tint) = when {
         car.link == Link.NONE -> Quint(
-            Icons.Outlined.CloudOff, "Нет связи с машиной", "Показаны последние данные",
+            Lx.CloudOff, "Нет связи с машиной", "Показаны последние данные",
             ElectroColors.TextMuted, ElectroColors.SurfaceElevated,
         )
         open -> Quint(
-            Icons.Outlined.Warning, "Автомобиль открыт", openDetail(car),
+            Lx.Warning, "Автомобиль открыт", openDetail(car),
             ElectroColors.Danger, ElectroColors.DangerTint,
         )
         // Машина на охране с отпертыми дверьми — небезопасное состояние, а не
         // мелочь: именно его сервер компенсирует блокировкой.
         car.security == Security.ARMED && car.locked == false -> Quint(
-            Icons.Outlined.Warning, "На охране, но двери отперты", "Закройте двери",
+            Lx.Warning, "На охране, но двери отперты", "Закройте двери",
             ElectroColors.Danger, ElectroColors.DangerTint,
         )
         car.security == Security.ARMED -> Quint(
-            Icons.Outlined.Shield, "Автомобиль на охране", doorLine,
+            Lx.Shield, "Автомобиль на охране", doorLine,
             ElectroColors.Ok, ElectroColors.OkTint,
         )
         car.security == Security.DISARMED -> Quint(
-            Icons.Outlined.LockOpen, "Снят с охраны", doorLine,
+            Lx.LockOpen, "Снят с охраны", doorLine,
             ElectroColors.Warn, ElectroColors.WarnTint,
         )
         // Охрану машина не сообщила — говорим только про замки и не выдаём
         // догадку за факт.
         locked -> Quint(
-            Icons.Outlined.Lock, "Двери закрыты", "Охрана не сообщается",
+            Lx.Lock, "Двери закрыты", "Охрана не сообщается",
             ElectroColors.TextSecondary, ElectroColors.SurfaceElevated,
         )
         else -> Quint(
-            Icons.Outlined.LockOpen, "Двери отперты", "Охрана не сообщается",
+            Lx.LockOpen, "Двери отперты", "Охрана не сообщается",
             ElectroColors.Warn, ElectroColors.WarnTint,
         )
     }
@@ -580,7 +581,7 @@ private fun QuickRow(
             "lock" -> ({
                 ControlTile(
                     if (locked) "Открыть двери" else "Закрыть двери",
-                    if (locked) Icons.Outlined.Lock else Icons.Outlined.LockOpen,
+                    if (locked) Lx.Lock else Lx.LockOpen,
                     stateOf(Cmd.LOCK).orActive(locked),
                     Modifier.weight(1f),
                 ) {
@@ -592,7 +593,7 @@ private fun QuickRow(
             })
             "trunk" -> ({
                 ControlTile(
-                    "Багажник", Icons.Outlined.DirectionsCar,
+                    "Багажник", Lx.DirectionsCar,
                     stateOf(Cmd.TRUNK).orActive(trunkOpen), Modifier.weight(1f),
                 ) {
                     if (trunkOpen) onSendAll(listOf(VehicleCommand(Cmd.TRUNK, "0")), "Закрыть багажник")
@@ -605,7 +606,7 @@ private fun QuickRow(
             "climate" -> ({
                 ControlTile(
                     if (climateOn(controls)) "Климат выкл" else "Климат",
-                    Icons.Outlined.AcUnit,
+                    Lx.AcUnit,
                     stateOf(Cmd.AC).orActive(climateOn(controls)),
                     Modifier.weight(1f), onClick = onClimate,
                 )
@@ -613,7 +614,7 @@ private fun QuickRow(
             "windows" -> ({
                 ControlTile(
                     if (windowsOpen) "Закрыть окна" else "Открыть окна",
-                    if (windowsOpen) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
+                    if (windowsOpen) Lx.ExpandLess else Lx.ExpandMore,
                     stateOf(Cmd.WINDOW_FL).orActive(windowsOpen), Modifier.weight(1f),
                 ) {
                     val value = if (windowsOpen) "0" else "100"
@@ -641,9 +642,9 @@ private fun QuickRow(
 @Composable
 private fun EntryRow(caps: CapabilitiesDto?, onOpen: (String) -> Unit) {
     val entries = buildList {
-        if (caps?.scenes != false) add(Triple("scenes", "Мои сцены", Icons.Outlined.Dashboard))
-        if (caps?.climate_schedule != false) add(Triple("schedule", "Расписание", Icons.Outlined.Schedule))
-        if (caps?.voice != false) add(Triple("voice", "Голос", Icons.Outlined.RecordVoiceOver))
+        if (caps?.scenes != false) add(Triple("scenes", "Мои сцены", Lx.Dashboard))
+        if (caps?.climate_schedule != false) add(Triple("schedule", "Расписание", Lx.Schedule))
+        if (caps?.voice != false) add(Triple("voice", "Голос", Lx.RecordVoiceOver))
     }
     if (entries.isEmpty()) return
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Space.x2)) {
@@ -696,11 +697,11 @@ private fun ClimateCard(
                         style = ElectroType.Caption, color = ElectroColors.TextMuted,
                     )
                 }
-                RoundAction("", Icons.Outlined.Remove) {
+                RoundAction("", Lx.Remove) {
                     if (temp > Cmd.TEMP_MIN) setBothSides(send, temp - 1)
                 }
                 Spacer(Modifier.width(Space.x2))
-                RoundAction("", Icons.Outlined.Add) {
+                RoundAction("", Lx.Add) {
                     if (temp < Cmd.TEMP_MAX) setBothSides(send, temp + 1)
                 }
             }
@@ -850,7 +851,7 @@ private fun SeatGlyphs(controls: Map<Int, String>) {
                         else -> ElectroColors.TextDisabled
                     }
                     Icon(
-                        Icons.Outlined.AirlineSeatReclineNormal, null,
+                        Lx.AirlineSeatReclineNormal, null,
                         tint = tint,
                         modifier = Modifier.size(26.dp),
                     )
@@ -892,10 +893,10 @@ private fun BottomNav(tab: String, onSelect: (String) -> Unit) {
             Modifier.fillMaxWidth().padding(top = Space.x3, bottom = Space.x4),
             horizontalArrangement = Arrangement.SpaceEvenly,
         ) {
-            NavItem(Icons.Outlined.Home, "Главная", tab == "car") { onSelect("car") }
-            NavItem(Icons.Outlined.AcUnit, "Климат", tab == "climate") { onSelect("climate") }
-            NavItem(Icons.Outlined.Map, "Карта", tab == "map") { onSelect("map") }
-            NavItem(Icons.Outlined.Settings, "Настройки", tab == "settings") { onSelect("settings") }
+            NavItem(Lx.Home, "Главная", tab == "car") { onSelect("car") }
+            NavItem(Lx.AcUnit, "Климат", tab == "climate") { onSelect("climate") }
+            NavItem(Lx.Map, "Карта", tab == "map") { onSelect("map") }
+            NavItem(Lx.Settings, "Настройки", tab == "settings") { onSelect("settings") }
         }
     }
 }

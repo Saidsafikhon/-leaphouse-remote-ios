@@ -1,5 +1,6 @@
 package uz.electro.remote.ui
 
+import uz.electro.remote.ui.components.Lx
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -41,7 +42,7 @@ fun VoiceScreen(
                         .padding(vertical = Space.x2),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Icon(Icons.Outlined.RecordVoiceOver, null,
+                    Icon(Lx.RecordVoiceOver, null,
                         tint = ElectroColors.Accent, modifier = Modifier.size(22.dp))
                     Spacer(Modifier.width(Space.x3))
                     Column(Modifier.weight(1f)) {
@@ -73,7 +74,7 @@ fun ScreenScaffold(
 ) {
     Column(Modifier.fillMaxSize()) {
         Row(Modifier.fillMaxWidth().padding(Space.x4), verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.AutoMirrored.Outlined.ArrowBack, null, tint = ElectroColors.TextPrimary,
+            Icon(Lx.ArrowBack, null, tint = ElectroColors.TextPrimary,
                 modifier = Modifier.size(26.dp).clickable(onClick = onBack))
             Spacer(Modifier.width(Space.x3))
             Text(title, style = ElectroType.Headline, color = ElectroColors.TextPrimary)

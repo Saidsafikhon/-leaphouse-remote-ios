@@ -1,5 +1,6 @@
 package uz.electro.remote.ui
 
+import uz.electro.remote.ui.components.Lx
 import android.content.Context
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -92,7 +93,7 @@ fun ClimateSeatsScreen(
                 TopTab("Сиденья", tab == Tab.Seats) { tab = Tab.Seats }
             }
             Icon(
-                Icons.Outlined.Close, null, tint = ElectroColors.TextSecondary,
+                Lx.Close, null, tint = ElectroColors.TextSecondary,
                 modifier = Modifier.align(Alignment.CenterEnd).size(26.dp).clickable(onClick = onClose),
             )
         }
@@ -118,7 +119,7 @@ fun ClimateSeatsScreen(
 
     blocked?.let { reason ->
         ElectroDialog(
-            Icons.Outlined.Whatshot, ElectroColors.Warn,
+            Lx.Whatshot, ElectroColors.Warn,
             "Климат не включаем", reason,
             confirmText = "Понятно",
             onConfirm = { blocked = null }, onDismiss = { blocked = null },
@@ -228,14 +229,14 @@ private fun ClimateTab(
             Column(Modifier.padding(Space.x4), verticalArrangement = Arrangement.spacedBy(Space.x3)) {
                 Text("Функции", style = ElectroType.Title, color = ElectroColors.TextPrimary)
                 Row(horizontalArrangement = Arrangement.spacedBy(Space.x3)) {
-                    ClimateButton("Макс. охлаждение", Icons.Outlined.AcUnit, maxCoolOn, Modifier.weight(1f)) {
+                    ClimateButton("Макс. охлаждение", Lx.AcUnit, maxCoolOn, Modifier.weight(1f)) {
                         val next = !maxCoolOn; maxCoolOn = next; if (next) maxHeatOn = false
                         val e = prefs.edit().putBoolean("sceneMaxCool", next)
                         if (next) e.putBoolean("sceneMaxHeat", false)
                         e.apply()
                         sendAll(Cmd.maxCool(next), "Макс. охлаждение")
                     }
-                    ClimateButton("Макс. обогрев", Icons.Outlined.Whatshot, maxHeatOn, Modifier.weight(1f)) {
+                    ClimateButton("Макс. обогрев", Lx.Whatshot, maxHeatOn, Modifier.weight(1f)) {
                         val next = !maxHeatOn; maxHeatOn = next; if (next) maxCoolOn = false
                         val e = prefs.edit().putBoolean("sceneMaxHeat", next)
                         if (next) e.putBoolean("sceneMaxCool", false)
@@ -249,7 +250,7 @@ private fun ClimateTab(
                     }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(Space.x3)) {
-                    ClimateButton("Циркуляция", Icons.Outlined.Loop, recircOn, Modifier.weight(1f)) {
+                    ClimateButton("Циркуляция", Lx.Loop, recircOn, Modifier.weight(1f)) {
                         val next = !recircOn; recircOn = next
                         prefs.edit().putBoolean("sceneRecirc", next).apply()
                         sendAll(Cmd.recircScene(next), "Циркуляция")
@@ -432,7 +433,7 @@ private fun NumberDial(
     onChange: (Int) -> Unit,
 ) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        DialButton(Icons.Outlined.Remove, enabled = value - step >= min) {
+        DialButton(Lx.Remove, enabled = value - step >= min) {
             onChange((value - step).coerceAtLeast(min))
         }
         Text(if (value - step >= min) "${value - step}" else "",
@@ -444,7 +445,7 @@ private fun NumberDial(
         Text(if (value + step <= max) "${value + step}" else "",
             style = ElectroType.Title, color = ElectroColors.TextDisabled,
             modifier = Modifier.weight(1f), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
-        DialButton(Icons.Outlined.Add, enabled = value + step <= max) {
+        DialButton(Lx.Add, enabled = value + step <= max) {
             onChange((value + step).coerceAtMost(max))
         }
     }
@@ -490,7 +491,7 @@ private fun SeatsTab(
     val levels = if (mode == SeatMode.Heat) heat else vent
     val other = if (mode == SeatMode.Heat) vent else heat
     val accent = if (mode == SeatMode.Heat) ElectroColors.Warn else ElectroColors.Info
-    val icon = if (mode == SeatMode.Heat) Icons.Outlined.Whatshot else Icons.Outlined.Air
+    val icon = if (mode == SeatMode.Heat) Lx.Whatshot else Lx.Air
 
     // Обогрев и обдув одного места взаимоисключающие (в машине это встроено —
     // включаешь одно, другое гаснет). Повторяем правило в приложении, чтобы

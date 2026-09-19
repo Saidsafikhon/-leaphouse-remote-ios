@@ -374,7 +374,7 @@ fun FoldSection(
                     Text(subtitle, style = ElectroType.Caption, color = ElectroColors.TextMuted)
                 }
                 Icon(
-                    if (expanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
+                    if (expanded) Lx.ExpandLess else Lx.ExpandMore,
                     null, tint = ElectroColors.TextMuted, modifier = Modifier.size(22.dp),
                 )
             }
@@ -393,11 +393,11 @@ fun FoldSection(
 @Composable
 fun ElectroToast(kind: BadgeKind, title: String, message: String?, modifier: Modifier = Modifier) {
     val icon = when (kind) {
-        BadgeKind.Success -> Icons.Outlined.CheckCircle
-        BadgeKind.Unsafe, BadgeKind.Failed -> Icons.Outlined.Warning
-        BadgeKind.Timeout, BadgeKind.Unconfirmed -> Icons.Outlined.Schedule
-        BadgeKind.Offline -> Icons.Outlined.CloudOff
-        else -> Icons.Outlined.Info
+        BadgeKind.Success -> Lx.CheckCircle
+        BadgeKind.Unsafe, BadgeKind.Failed -> Lx.Warning
+        BadgeKind.Timeout, BadgeKind.Unconfirmed -> Lx.Schedule
+        BadgeKind.Offline -> Lx.CloudOff
+        else -> Lx.Info
     }
     Surface(
         color = ElectroColors.SurfaceElevated,

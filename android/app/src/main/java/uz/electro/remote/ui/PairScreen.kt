@@ -1,5 +1,6 @@
 package uz.electro.remote.ui
 
+import uz.electro.remote.ui.components.Lx
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -61,7 +62,7 @@ fun PairScreen(vm: CarViewModel, onPaired: () -> Unit) {
                     .border(2.dp, ElectroColors.Accent, Radius.Xl),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(Icons.Outlined.QrCode2, null, tint = ElectroColors.Accent,
+                Icon(Lx.QrCode2, null, tint = ElectroColors.Accent,
                     modifier = Modifier.size(72.dp))
             }
 

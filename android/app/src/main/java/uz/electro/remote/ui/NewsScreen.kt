@@ -1,5 +1,6 @@
 package uz.electro.remote.ui
 
+import uz.electro.remote.ui.components.Lx
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -82,9 +83,9 @@ fun NewsScreen(
         shown.forEach { n ->
             val isRead = n.id in read
             val (icon, tint) = when (n.kind) {
-                "alert" -> Icons.Outlined.Warning to ElectroColors.Warn
-                "news" -> Icons.Outlined.Campaign to ElectroColors.Info
-                else -> Icons.Outlined.Notifications to ElectroColors.Accent
+                "alert" -> Lx.Warning to ElectroColors.Warn
+                "news" -> Lx.Campaign to ElectroColors.Info
+                else -> Lx.Notifications to ElectroColors.Accent
             }
             Surface(
                 color = ElectroColors.Surface, shape = Radius.Md,
@@ -123,18 +124,18 @@ fun NewsScreen(
 @Composable
 fun NewsDetailScreen(n: NewsItemDto, onClose: () -> Unit) {
     val (icon, tint) = when (n.kind) {
-        "alert" -> Icons.Outlined.Warning to ElectroColors.Warn
-        "news" -> Icons.Outlined.Campaign to ElectroColors.Info
-        else -> Icons.Outlined.Notifications to ElectroColors.Accent
+        "alert" -> Lx.Warning to ElectroColors.Warn
+        "news" -> Lx.Campaign to ElectroColors.Info
+        else -> Lx.Notifications to ElectroColors.Accent
     }
     val kindTitle = when (n.kind) { "alert" -> "Важное"; "news" -> "Новость"; else -> "Уведомление" }
     Column(Modifier.fillMaxSize().background(ElectroColors.Background)) {
         Row(Modifier.fillMaxWidth().padding(Space.x4), verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Назад", tint = ElectroColors.TextPrimary,
+            Icon(Lx.ArrowBack, "Назад", tint = ElectroColors.TextPrimary,
                 modifier = Modifier.size(26.dp).clickable(onClick = onClose))
             Spacer(Modifier.width(Space.x3))
             Text(kindTitle, style = ElectroType.Headline, color = ElectroColors.TextPrimary, modifier = Modifier.weight(1f))
-            Icon(Icons.Outlined.Close, "Закрыть", tint = ElectroColors.TextSecondary,
+            Icon(Lx.Close, "Закрыть", tint = ElectroColors.TextSecondary,
                 modifier = Modifier.size(24.dp).clickable(onClick = onClose))
         }
         Column(
@@ -175,7 +176,7 @@ fun NewsBell(unread: Int, onClick: () -> Unit, modifier: Modifier = Modifier) {
         ) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Icon(
-                    Icons.Outlined.Notifications, null,
+                    Lx.Notifications, null,
                     tint = if (unread > 0) ElectroColors.Accent else ElectroColors.TextSecondary,
                     modifier = Modifier.size(22.dp),
                 )

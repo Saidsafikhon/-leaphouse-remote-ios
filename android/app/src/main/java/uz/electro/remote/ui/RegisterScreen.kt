@@ -1,5 +1,6 @@
 package uz.electro.remote.ui
 
+import uz.electro.remote.ui.components.Lx
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.material.icons.Icons
@@ -68,7 +69,7 @@ fun RegisterScreen(vm: CarViewModel, onRegistered: () -> Unit, onBack: () -> Uni
             visual = if (show) VisualTransformation.None else PasswordVisualTransformation(),
             trailing = {
                 IconButton(onClick = { show = !show }) {
-                    Icon(if (show) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
+                    Icon(if (show) Lx.VisibilityOff else Lx.Visibility,
                         null, tint = ElectroColors.TextSecondary)
                 }
             })

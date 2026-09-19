@@ -1,5 +1,6 @@
 package uz.electro.remote.ui
 
+import uz.electro.remote.ui.components.Lx
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -108,7 +109,7 @@ fun SettingsScreen(vm: CarViewModel, onClose: () -> Unit) {
                     },
                     contentPadding = PaddingValues(0.dp),
                 ) {
-                    Icon(Icons.Outlined.AddCircleOutline, null, tint = ElectroColors.Accent,
+                    Icon(Lx.AddCircleOutline, null, tint = ElectroColors.Accent,
                         modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(6.dp))
                     Text("Добавить машину", color = ElectroColors.Accent)
@@ -218,7 +219,7 @@ fun SettingsScreen(vm: CarViewModel, onClose: () -> Unit) {
     // --- подтверждение отвязки ---
     confirmDrop?.let { v ->
         ElectroDialog(
-            Icons.Outlined.Delete, ElectroColors.Danger,
+            Lx.Delete, ElectroColors.Danger,
             "Отвязать машину?",
             "«" + (vm.vehicleNick(v.vehicle_id) ?: v.name) + "» перестанет быть доступной этому " +
                 "аккаунту. Сама машина останется — доступ вернёт новый QR с её экрана.",
@@ -280,11 +281,11 @@ private fun VehicleRow(
             )
         }
         IconButton(onClick = onRename) {
-            Icon(Icons.Outlined.Edit, "Переименовать", tint = ElectroColors.TextSecondary,
+            Icon(Lx.Edit, "Переименовать", tint = ElectroColors.TextSecondary,
                 modifier = Modifier.size(20.dp))
         }
         IconButton(onClick = onDrop) {
-            Icon(Icons.Outlined.Delete, "Отвязать", tint = ElectroColors.Danger,
+            Icon(Lx.Delete, "Отвязать", tint = ElectroColors.Danger,
                 modifier = Modifier.size(20.dp))
         }
     }

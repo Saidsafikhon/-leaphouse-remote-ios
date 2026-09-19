@@ -1,5 +1,6 @@
 package uz.electro.remote.ui
 
+import uz.electro.remote.ui.components.Lx
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -110,13 +111,13 @@ private fun SeatSchematic(
         ) {
             // левая половина — обогрев, правая — вентиляция; каждая тапается
             SeatHalf(
-                icon = Icons.Outlined.Whatshot, level = heat, onColor = ElectroColors.Warn,
+                icon = Lx.Whatshot, level = heat, onColor = ElectroColors.Warn,
                 side = Side.Left, modifier = Modifier.weight(1f).fillMaxHeight().clip(
                     RoundedCornerShape(topStart = 18.dp, bottomStart = 18.dp)
                 ).clickable(onClick = onHeat),
             )
             SeatHalf(
-                icon = Icons.Outlined.Air, level = vent, onColor = ElectroColors.Info,
+                icon = Lx.Air, level = vent, onColor = ElectroColors.Info,
                 side = Side.Right, modifier = Modifier.weight(1f).fillMaxHeight().clip(
                     RoundedCornerShape(topEnd = 18.dp, bottomEnd = 18.dp)
                 ).clickable(onClick = onVent),

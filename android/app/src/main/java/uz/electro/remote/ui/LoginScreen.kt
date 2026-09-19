@@ -1,5 +1,6 @@
 package uz.electro.remote.ui
 
+import uz.electro.remote.ui.components.Lx
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -68,7 +69,7 @@ fun LoginScreen(
             visual = if (show) VisualTransformation.None else PasswordVisualTransformation(),
             trailing = {
                 IconButton(onClick = { show = !show }) {
-                    Icon(if (show) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
+                    Icon(if (show) Lx.VisibilityOff else Lx.Visibility,
                         null, tint = ElectroColors.TextSecondary)
                 }
             })

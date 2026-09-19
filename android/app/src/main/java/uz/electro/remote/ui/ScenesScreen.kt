@@ -1,5 +1,6 @@
 package uz.electro.remote.ui
 
+import uz.electro.remote.ui.components.Lx
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -68,9 +69,9 @@ private fun SceneRow(scene: SceneTemplateDto, onRun: () -> Unit, onDelete: () ->
             style = ElectroType.Caption, color = ElectroColors.TextMuted,
         )
         Row(horizontalArrangement = Arrangement.spacedBy(Space.x2)) {
-            ControlTile("Выполнить", Icons.Outlined.PlayArrow, ControlState.Active,
+            ControlTile("Выполнить", Lx.PlayArrow, ControlState.Active,
                 Modifier.weight(1f), onClick = onRun)
-            ControlTile("Удалить", Icons.Outlined.Delete, ControlState.Default,
+            ControlTile("Удалить", Lx.Delete, ControlState.Default,
                 Modifier.weight(1f), onClick = onDelete)
         }
     }
@@ -122,7 +123,7 @@ private fun SceneBuilder(
                 Text(ing.title, style = ElectroType.Body,
                     color = if (on) ElectroColors.Accent else ElectroColors.TextPrimary,
                     modifier = Modifier.weight(1f))
-                if (on) Icon(Icons.Outlined.Add, null, tint = ElectroColors.Accent,
+                if (on) Icon(Lx.Add, null, tint = ElectroColors.Accent,
                     modifier = Modifier.size(18.dp))
             }
         }

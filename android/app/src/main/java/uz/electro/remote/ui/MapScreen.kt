@@ -1,5 +1,6 @@
 package uz.electro.remote.ui
 
+import uz.electro.remote.ui.components.Lx
 import android.content.Intent
 import android.graphics.BitmapFactory
 import android.net.Uri
@@ -71,7 +72,7 @@ fun MapScreen(loc: GeoPoint?) {
             Surface(color = ElectroColors.Surface, shape = Radius.Md,
                 modifier = Modifier.fillMaxWidth().padding(horizontal = Space.x4)) {
                 Row(Modifier.padding(Space.x3), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Outlined.MyLocation, null, tint = ElectroColors.Accent,
+                    Icon(Lx.MyLocation, null, tint = ElectroColors.Accent,
                         modifier = Modifier.size(22.dp))
                     Spacer(Modifier.width(Space.x3))
                     Column(Modifier.weight(1f)) {
@@ -117,7 +118,7 @@ fun MapScreen(loc: GeoPoint?) {
                     Image(img, "Карта", Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
                 } else {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(Icons.Outlined.Map, null, tint = ElectroColors.TextMuted,
+                        Icon(Lx.Map, null, tint = ElectroColors.TextMuted,
                             modifier = Modifier.size(40.dp))
                         Spacer(Modifier.height(Space.x3))
                         Text("Загрузка карты…", style = ElectroType.Caption,
@@ -127,7 +128,7 @@ fun MapScreen(loc: GeoPoint?) {
             }
             Spacer(Modifier.height(Space.x3))
 
-            MapBtn("Маршрут", Icons.Outlined.Directions,
+            MapBtn("Маршрут", Lx.Directions,
                 Modifier.fillMaxWidth().padding(horizontal = Space.x4)) { openRoute() }
             Spacer(Modifier.height(Space.x4))
         }
@@ -138,7 +139,7 @@ fun MapScreen(loc: GeoPoint?) {
 private fun ColumnScope.EmptyLocation() {
     Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(Icons.Outlined.MyLocation, null, tint = ElectroColors.TextMuted,
+            Icon(Lx.MyLocation, null, tint = ElectroColors.TextMuted,
                 modifier = Modifier.size(40.dp))
             Spacer(Modifier.height(Space.x3))
             Text("Нет координат", style = ElectroType.Body, color = ElectroColors.TextSecondary)
