@@ -468,7 +468,7 @@ private struct QuickRow: View {
             ControlTile(
                 label: locked ? "Открыть двери" : "Закрыть двери",
                 icon: locked ? "lock" : "lock.open",
-                state: stateOf(Cmd.LOCK).orActive(locked)
+                state: stateOf(Cmd.LOCK).orActive(!locked)
             ) {
                 if locked {
                     onConfirm(HomeConfirm(title: "Открыть двери?", msg: "Автомобиль будет разблокирован.", action: "Открыть",

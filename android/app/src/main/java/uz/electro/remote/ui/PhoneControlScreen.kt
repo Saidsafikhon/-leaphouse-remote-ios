@@ -582,7 +582,7 @@ private fun QuickRow(
                 ControlTile(
                     if (locked) "Открыть двери" else "Закрыть двери",
                     if (locked) Lx.Lock else Lx.LockOpen,
-                    stateOf(Cmd.LOCK).orActive(locked),
+                    stateOf(Cmd.LOCK).orActive(!locked),
                     Modifier.weight(1f),
                 ) {
                     if (locked) onConfirm(HomeConfirm(
