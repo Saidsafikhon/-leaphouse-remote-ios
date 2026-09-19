@@ -57,7 +57,7 @@ fun LoginScreen(
             fontWeight = FontWeight.Bold, textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth())
         Spacer(Modifier.height(Space.x1))
-        Text("Управление вашим Leapmotor C16", color = ElectroColors.TextSecondary,
+        Text("Управление вашим электромобилем", color = ElectroColors.TextSecondary,
             fontSize = 14.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
 
         Spacer(Modifier.height(Space.x8))

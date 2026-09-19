@@ -140,7 +140,7 @@ struct LoginScreen: View {
                 Text("LEAPREMOTE").font(.system(size: 28, weight: .bold)).foregroundStyle(p.accent)
                     .multilineTextAlignment(.center).frame(maxWidth: .infinity)
                 Spacer().frame(height: Space.x1)
-                Text("Управление вашим Leapmotor C16").font(.system(size: 14)).foregroundStyle(p.textSecondary)
+                Text("Управление вашим электромобилем").font(.system(size: 14)).foregroundStyle(p.textSecondary)
                     .multilineTextAlignment(.center).frame(maxWidth: .infinity)
 
                 Spacer().frame(height: Space.x8)

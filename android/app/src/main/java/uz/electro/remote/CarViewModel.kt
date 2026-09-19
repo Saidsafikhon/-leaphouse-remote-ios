@@ -149,6 +149,26 @@ class CarViewModel(app: Application) : AndroidViewModel(app) {
     private val _voiceIntents = MutableStateFlow<List<VoiceIntentDto>>(emptyList())
     val voiceIntents: StateFlow<List<VoiceIntentDto>> = _voiceIntents.asStateFlow()
 
+    // --- новости и push ------------------------------------------------------
+
+    private val _news = MutableStateFlow<List<NewsItemDto>>(emptyList())
+    val news: StateFlow<List<NewsItemDto>> = _news.asStateFlow()
+    private val _newsSeen = MutableStateFlow(settings.newsSeen)
+
+    /** Сколько новостей человек ещё не открывал — бейдж на колокольчике. */
+    val unreadNews: StateFlow<Int> =
+        combine(_news, _newsSeen) { list, seen -> list.count { it.created_at > seen } }
+            .stateIn(viewModelScope, SharingStarted.Eagerly, 0)
+
+    fun loadNews() = viewModelScope.launch { _news.value = repo.news() }
+
+    /** Открыли ленту — всё, что в ней есть, считается прочитанным. */
+    fun markNewsSeen() {
+        val newest = _news.value.maxOfOrNull { it.created_at } ?: return
+        settings.newsSeen = newest
+        _newsSeen.value = newest
+    }
+
     private var pollJob: Job? = null
     private var connectJob: Job? = null
 
@@ -482,26 +502,6 @@ class CarViewModel(app: Application) : AndroidViewModel(app) {
 
     private val _support = MutableStateFlow<SupportDto?>(null)
     val support: StateFlow<SupportDto?> = _support.asStateFlow()
-
-    // --- новости и push ------------------------------------------------------
-
-    private val _news = MutableStateFlow<List<NewsItemDto>>(emptyList())
-    val news: StateFlow<List<NewsItemDto>> = _news.asStateFlow()
-    private val _newsSeen = MutableStateFlow(settings.newsSeen)
-
-    /** Сколько новостей человек ещё не открывал — бейдж на колокольчике. */
-    val unreadNews: StateFlow<Int> =
-        combine(_news, _newsSeen) { list, seen -> list.count { it.created_at > seen } }
-            .stateIn(viewModelScope, SharingStarted.Eagerly, 0)
-
-    fun loadNews() = viewModelScope.launch { _news.value = repo.news() }
-
-    /** Открыли ленту — всё, что в ней есть, считается прочитанным. */
-    fun markNewsSeen() {
-        val newest = _news.value.maxOfOrNull { it.created_at } ?: return
-        settings.newsSeen = newest
-        _newsSeen.value = newest
-    }
 
     /** Удаление аккаунта: сервер стирает учётку, приложение выходит. */
     suspend fun deleteAccount(password: String): Result<Unit> {
