@@ -96,3 +96,93 @@ jobs:
             sim-build.log
             dev-build.log
           if-no-files-found: error
+
+  # ---- Подписанная сборка → TestFlight. Включается, когда в Secrets заданы
+  # ключ App Store Connect API и Team ID; без них job пропускается. Сертификат
+  # хранить не нужно: Xcode cloud signing выпускает его сам по API-ключу.
+  testflight:
+    runs-on: macos-15
+    timeout-minutes: 40
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    env:
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+    steps:
+      - name: Check secrets
+        id: gate
+        run: |
+          if [ -z "$ASC_KEY_ID" ] || [ -z "$ASC_ISSUER_ID" ] || [ -z "$ASC_KEY_P8" ] || [ -z "$APPLE_TEAM_ID" ]; then
+            echo "Секреты ASC_* / APPLE_TEAM_ID не заданы — TestFlight пропускаем."; echo "go=no" >> "$GITHUB_OUTPUT"
+          else echo "go=yes" >> "$GITHUB_OUTPUT"; fi
+
+      - uses: actions/checkout@v4
+        if: steps.gate.outputs.go == 'yes'
+
+      - name: Select Xcode
+        if: steps.gate.outputs.go == 'yes'
+        run: sudo xcode-select -s "$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)"
+
+      - name: Install xcodegen and generate project
+        if: steps.gate.outputs.go == 'yes'
+        run: brew install xcodegen && xcodegen generate
+
+      - name: Put API key in place
+        if: steps.gate.outputs.go == 'yes'
+        run: |
+          mkdir -p ~/private_keys
+          echo "$ASC_KEY_P8" | base64 --decode > ~/private_keys/AuthKey_${ASC_KEY_ID}.p8
+          cp ~/private_keys/AuthKey_${ASC_KEY_ID}.p8 ./AuthKey.p8
+
+      - name: Archive (automatic signing, cloud-managed certificate)
+        if: steps.gate.outputs.go == 'yes'
+        run: |
+          set -o pipefail
+          xcodebuild -project ElectroRemote.xcodeproj -scheme ElectroRemote -configuration Release \
+            -sdk iphoneos -destination 'generic/platform=iOS' -archivePath build/ElectroRemote.xcarchive \
+            -allowProvisioningUpdates -allowProvisioningDeviceRegistration \
+            -authenticationKeyPath "$PWD/AuthKey.p8" -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+            CODE_SIGN_STYLE=Automatic DEVELOPMENT_TEAM="$APPLE_TEAM_ID" CODE_SIGN_IDENTITY="Apple Distribution" \
+            CODE_SIGNING_ALLOWED=YES CODE_SIGNING_REQUIRED=YES \
+            archive 2>&1 | tee archive.log | grep -E "error:|ARCHIVE|BUILD" || true
+          grep -q "ARCHIVE SUCCEEDED" archive.log
+
+      - name: Export .ipa for App Store
+        if: steps.gate.outputs.go == 'yes'
+        run: |
+          cat > ExportOptions.plist <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>export</string>
+            <key>signingStyle</key><string>automatic</string>
+            <key>teamID</key><string>${APPLE_TEAM_ID}</string>
+            <key>uploadSymbols</key><true/>
+          </dict></plist>
+          PLIST
+          set -o pipefail
+          xcodebuild -exportArchive -archivePath build/ElectroRemote.xcarchive -exportPath build/export \
+            -exportOptionsPlist ExportOptions.plist -allowProvisioningUpdates \
+            -authenticationKeyPath "$PWD/AuthKey.p8" -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+            2>&1 | tee export.log | grep -E "error:|EXPORT" || true
+          ls -la build/export
+
+      - name: Upload to TestFlight
+        if: steps.gate.outputs.go == 'yes'
+        run: |
+          IPA=$(ls build/export/*.ipa | head -1)
+          xcrun altool --upload-app -f "$IPA" -t ios --apiKey "$ASC_KEY_ID" --apiIssuer "$ASC_ISSUER_ID"
+
+      - name: Report errors
+        if: failure() && steps.gate.outputs.go == 'yes'
+        run: |
+          for f in archive.log export.log; do
+            [ -f "$f" ] || continue
+            TAIL=$(grep -E "error:|warning: .*(sign|provision|profile|certificate)" "$f" | sort -u | head -30 | awk '{printf "%s%%0A", $0}')
+            echo "::error::ERRORS $f%0A$TAIL"
+            TAIL=$(tail -c 3000 "$f" | grep -v '^$' | awk '{printf "%s%%0A", $0}')
+            echo "::error::TAIL $f%0A$TAIL"
+          done
