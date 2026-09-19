@@ -31,6 +31,7 @@ struct ClimateSeatsScreen: View {
                             .frame(width: 32, height: 32)
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel("Закрыть")
                 }
             }
             .padding(Space.x4)

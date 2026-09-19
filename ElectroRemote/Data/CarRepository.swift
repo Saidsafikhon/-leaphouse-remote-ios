@@ -30,6 +30,7 @@ final class CarRepository {
 
     /// Снять состояние с сервера: он спрашивает машину сам.
     func refresh() async -> CarState {
+        if Demo.enabled { return Demo.state() }
         let now = nowMillis()
         var empty = CarState(); empty.updatedAt = now
         guard settings.cloudEnabled, let id = await resolveVehicleId() else { return empty }
@@ -38,6 +39,7 @@ final class CarRepository {
 
     /// Отправить команду. Путь один — сервер.
     func send(_ cmd: VehicleCommand) async -> CmdResult {
+        if Demo.enabled { return .ok }
         guard settings.cloudEnabled else { return .failed("Сервер отключён в настройках") }
         guard settings.loggedIn else { return .failed("Вход в аккаунт не выполнен") }
         guard let id = await resolveVehicleId() else { return .failed("Машина не выбрана") }
@@ -60,6 +62,7 @@ final class CarRepository {
 
     /// Включить климат с таймером авто-выключения; nil — умолчание сервера.
     func climateOn(runMinutes: Int?) async -> CmdResult {
+        if Demo.enabled { return .ok }
         guard settings.cloudEnabled else { return .failed("Сервер отключён в настройках") }
         guard settings.loggedIn else { return .failed("Вход в аккаунт не выполнен") }
         guard let id = await resolveVehicleId() else { return .failed("Машина не выбрана") }
@@ -76,9 +79,10 @@ final class CarRepository {
     // --- пробуждение ---
 
     /// Контакты поддержки (открытый эндпоинт). nil — не достали.
-    func support() async -> SupportDto? { try? await cloud.support() }
+    func support() async -> SupportDto? { Demo.enabled ? Demo.support : try? await cloud.support() }
 
     func wake() async -> WakeResult {
+        if Demo.enabled { return .sent("через пробуждалку в машине") }
         guard settings.cloudEnabled, settings.loggedIn else { return .noServer }
         guard let id = await resolveVehicleId() else { return .noServer }
         do {
@@ -90,6 +94,7 @@ final class CarRepository {
 
     /// Отпустить машину обратно в сон — через ту же железку.
     func sleep() async -> WakeResult {
+        if Demo.enabled { return .sent("через пробуждалку в машине") }
         guard settings.cloudEnabled, settings.loggedIn else { return .noServer }
         guard let id = await resolveVehicleId() else { return .noServer }
         do {
@@ -126,6 +131,7 @@ final class CarRepository {
     // --- вход в аккаунт ---
 
     func login(email: String, password: String) async throws {
+        if Demo.enabled { settings.token = "demo"; settings.email = email; settings.vehicleId = Demo.vehicle.vehicle_id; return }
         let token = try await cloud.login(LoginRequest(email: email, password: password)).access_token
         settings.token = token
         settings.email = email
@@ -160,13 +166,13 @@ final class CarRepository {
         settings.logout()
     }
 
-    func news() async -> [NewsItem] { (try? await cloud.news()) ?? [] }
+    func news() async -> [NewsItem] { Demo.enabled ? Demo.news : ((try? await cloud.news()) ?? []) }
 
     func logout() { settings.logout() }
 
     // --- парк ---
 
-    func vehicles() async throws -> [VehicleDto] { try await cloud.vehicles() }
+    func vehicles() async throws -> [VehicleDto] { Demo.enabled ? [Demo.vehicle] : try await cloud.vehicles() }
 
     func isUnauthorized(_ error: Error) -> Bool { (error as? ApiError)?.code == 401 }
 
@@ -186,11 +192,13 @@ final class CarRepository {
     // --- возможности, сцены, расписание, голос ---
 
     func capabilities() async -> CapabilitiesDto? {
+        if Demo.enabled { return Demo.capabilities }
         guard let id = await resolveVehicleId() else { return nil }
         return try? await cloud.capabilities(id)
     }
 
     func scenes() async -> [SceneTemplateDto] {
+        if Demo.enabled { return Demo.scenes }
         guard let id = await resolveVehicleId() else { return [] }
         return (try? await cloud.scenes(id)) ?? []
     }
@@ -211,6 +219,7 @@ final class CarRepository {
     }
 
     func climateSchedules() async -> [ClimateScheduleDto] {
+        if Demo.enabled { return Demo.schedules }
         guard let id = await resolveVehicleId() else { return [] }
         return (try? await cloud.climateSchedules(id)) ?? []
     }
@@ -233,7 +242,7 @@ final class CarRepository {
     /// Отвязать машину от аккаунта. Сама машина остаётся, снимается только доступ.
     func unlinkVehicle(_ vehicleId: String) async throws { try await cloud.unlinkVehicle(vehicleId) }
 
-    func voiceIntents() async -> [VoiceIntentDto] { (try? await cloud.voiceIntents()) ?? [] }
+    func voiceIntents() async -> [VoiceIntentDto] { Demo.enabled ? Demo.voice : ((try? await cloud.voiceIntents()) ?? []) }
 
     func runVoice(_ intent: String) async -> CmdResult {
         guard let id = await resolveVehicleId() else { return .failed("Машина не выбрана") }

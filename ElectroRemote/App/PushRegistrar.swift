@@ -20,6 +20,7 @@ final class PushRegistrar: NSObject, UNUserNotificationCenterDelegate {
     /// Вызывается после входа и при запуске с живой сессией.
     @MainActor
     func enable() {
+        if Demo.enabled { return }   // на скриншотах системный запрос разрешения не нужен
         let center = UNUserNotificationCenter.current()
         center.delegate = self
         center.requestAuthorization(options: [.alert, .sound, .badge]) { granted, _ in

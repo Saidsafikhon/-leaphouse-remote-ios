@@ -311,6 +311,7 @@ private struct NewsBell: View {
             }
         }
         .buttonStyle(.plain)
+        .accessibilityLabel("Новости")
     }
 }
 

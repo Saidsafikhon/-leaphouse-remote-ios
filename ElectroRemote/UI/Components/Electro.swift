@@ -452,6 +452,7 @@ struct ScreenScaffold<Content: View>: View {
                         .frame(width: 32, height: 32)
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("Назад")
                 Text(title).font(ElectroType.headline).foregroundStyle(p.textPrimary)
                 Spacer()
             }

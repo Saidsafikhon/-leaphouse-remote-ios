@@ -39,3 +39,30 @@ targets:
         CODE_SIGNING_REQUIRED: NO
         CODE_SIGNING_ALLOWED: NO
         DEVELOPMENT_TEAM: ""
+  ElectroRemoteUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: ElectroRemoteUITests
+    dependencies:
+      - target: ElectroRemote
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: uz.electro.remote.uitests
+        TEST_TARGET_NAME: ElectroRemote
+        GENERATE_INFOPLIST_FILE: YES
+        CODE_SIGNING_ALLOWED: NO
+schemes:
+  ElectroRemote:
+    build:
+      targets:
+        ElectroRemote: all
+        ElectroRemoteUITests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - ElectroRemoteUITests
+    archive:
+      config: Release
