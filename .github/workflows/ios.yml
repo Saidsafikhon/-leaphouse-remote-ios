@@ -227,7 +227,14 @@ jobs:
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
             TEST_RUNNER_SCREENSHOT_DIR="$PWD/screenshots" \
             2>&1 | tee uitest.log | grep -E "error:|Test Case|passed|failed|BUILD|TEST" || true
-          ls -la screenshots
+          echo "--- screenshots dir:"; ls -la screenshots || true
+          # запасной путь: вложения теста из xcresult
+          if [ "$(ls screenshots/*.png 2>/dev/null | wc -l)" -lt 5 ] && [ -d build/screens.xcresult ]; then
+            mkdir -p attachments
+            xcrun xcresulttool export attachments --path build/screens.xcresult --output-path attachments || true
+            find attachments -name "*.png" -exec cp {} screenshots/ \;
+            ls -la screenshots || true
+          fi
           test "$(ls screenshots/*.png 2>/dev/null | wc -l)" -ge 5
 
       - name: Package screenshots

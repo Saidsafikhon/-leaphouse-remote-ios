@@ -36,8 +36,8 @@ enum Demo {
     )
 
     static let scenes: [SceneTemplateDto] = (try? JSONDecoder().decode([SceneTemplateDto].self, from: Data(#"""
-    [{"template_id":"s1","name":"Остудить к выходу","steps":[{"type":65537,"value":"1","title":"климат"},{"type":65574,"value":"20","title":"температура 20°"},{"type":65577,"value":"7","title":"обдув 7"}]},
-     {"template_id":"s2","name":"Проветрить","steps":[{"type":196609,"value":"100","title":"окна открыть"},{"type":65545,"value":"1","title":"циркуляция"}]}]
+    [{"template_id":"s1","name":"Остудить к выходу","steps":[{"type":65537,"value":"1","title":"климат","required":true},{"type":65574,"value":"20","title":"температура 20°","required":true},{"type":65577,"value":"7","title":"обдув 7","required":true}]},
+     {"template_id":"s2","name":"Проветрить","steps":[{"type":196609,"value":"100","title":"окна открыть","required":true},{"type":65545,"value":"1","title":"циркуляция","required":true}]}]
     """#.utf8))) ?? []
 
     static let schedules: [ClimateScheduleDto] = (try? JSONDecoder().decode([ClimateScheduleDto].self, from: Data(#"""
