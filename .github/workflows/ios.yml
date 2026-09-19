@@ -221,11 +221,10 @@ jobs:
         run: |
           set -o pipefail
           mkdir -p screenshots
-          xcodebuild test -project ElectroRemote.xcodeproj -scheme ElectroRemote \
+          TEST_RUNNER_SCREENSHOT_DIR="$PWD/screenshots" xcodebuild test -project ElectroRemote.xcodeproj -scheme ElectroRemote \
             -destination "id=${{ steps.sim.outputs.udid }}" \
             -resultBundlePath build/screens.xcresult \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
-            TEST_RUNNER_SCREENSHOT_DIR="$PWD/screenshots" \
             2>&1 | tee uitest.log | grep -E "error:|Test Case|passed|failed|BUILD|TEST" || true
           echo "--- screenshots dir:"; ls -la screenshots || true
           # запасной путь: вложения теста из xcresult
@@ -235,6 +234,7 @@ jobs:
             find attachments -name "*.png" -exec cp {} screenshots/ \;
             ls -la screenshots || true
           fi
+          echo "::notice::screenshots: $(ls screenshots 2>/dev/null | tr '\n' ' ') | attachments: $(find attachments -name '*.png' 2>/dev/null | head -3 | tr '\n' ' ')"
           test "$(ls screenshots/*.png 2>/dev/null | wc -l)" -ge 5
 
       - name: Package screenshots
