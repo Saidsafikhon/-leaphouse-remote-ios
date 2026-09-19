@@ -66,8 +66,8 @@ struct PhoneControlScreen: View {
                     case .voice:
                         VoiceScreen(intents: vm.voiceIntents, onRun: { vm.runVoice($0) }, onBack: { tab = .car })
                     case .news:
-                        NewsScreen(items: vm.news, onBack: { tab = .car }, onRefresh: { vm.loadNews() })
-                            .onAppear { vm.markNewsSeen() }
+                        NewsScreen(items: vm.news, isRead: { vm.isRead($0) }, onRead: { vm.markRead($0) },
+                                   onReadAll: { vm.markAllRead() }, onBack: { tab = .car }, onRefresh: { vm.loadNews() })
                     case .car:
                         HomeTabView(
                             car: vm.car,
@@ -291,7 +291,7 @@ private struct HeaderLockup: View {
 }
 
 /// Колокольчик «Новости» с точкой непрочитанных.
-private struct NewsBell: View {
+struct NewsBell: View {
     @Environment(\.palette) private var p
     let unread: Int
     let action: () -> Void

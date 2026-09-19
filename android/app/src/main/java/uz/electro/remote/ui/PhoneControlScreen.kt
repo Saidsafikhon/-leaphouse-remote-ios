@@ -66,6 +66,7 @@ fun PhoneControlScreen(vm: CarViewModel = viewModel()) {
     val schedules by vm.schedules.collectAsState()
     val voiceIntents by vm.voiceIntents.collectAsState()
     val news by vm.news.collectAsState()
+    val newsRead by vm.newsRead.collectAsState()
     val unreadNews by vm.unreadNews.collectAsState()
 
     var tab by remember { mutableStateOf("car") }
@@ -141,9 +142,9 @@ fun PhoneControlScreen(vm: CarViewModel = viewModel()) {
                     onBack = { tab = "car" },
                 )
                 "news" -> {
-                    LaunchedEffect(Unit) { vm.loadNews(); vm.markNewsSeen() }
-                    LaunchedEffect(news) { vm.markNewsSeen() }
-                    NewsScreen(news, onBack = { tab = "car" })
+                    LaunchedEffect(Unit) { vm.loadNews() }
+                    NewsScreen(news, newsRead, onRead = { vm.markNewsRead(it.id) },
+                        onReadAll = { vm.markAllNewsRead() }, onBack = { tab = "car" })
                 }
                 else -> HomeTab(
                     car = car,

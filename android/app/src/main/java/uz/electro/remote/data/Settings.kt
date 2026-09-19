@@ -65,10 +65,10 @@ class Settings(ctx: Context) {
         get() = sp.getString(K_SEAT_PRESET, "") ?: ""
         set(v) = sp.edit().putString(K_SEAT_PRESET, v).apply()
 
-    /** Последняя просмотренная новость (created_at) — для бейджа непрочитанных. */
-    var newsSeen: String
-        get() = sp.getString(K_NEWS_SEEN, "") ?: ""
-        set(v) = sp.edit().putString(K_NEWS_SEEN, v).apply()
+    /** Прочитанные новости (id) — отмечаются вручную, бейдж считает остальные. */
+    var newsRead: Set<String>
+        get() = sp.getStringSet(K_NEWS_READ, emptySet())?.toSet() ?: emptySet()
+        set(v) = sp.edit().putStringSet(K_NEWS_READ, v.toSet()).apply()
 
     /** Push-токен, который сервер уже получил (снимаем при выходе). */
     var pushToken: String?
@@ -90,7 +90,7 @@ class Settings(ctx: Context) {
         private const val K_CLOUD_ON = "cloudEnabled"
         private const val K_NICK_PREFIX = "nick_"
         private const val K_SEAT_PRESET = "seatPreset"
-        private const val K_NEWS_SEEN = "newsSeen"
+        private const val K_NEWS_READ = "newsRead"
         private const val K_PUSH_TOKEN = "pushToken"
 
         /** Публичные страницы сайта. */

@@ -31,6 +31,10 @@ import uz.electro.remote.ui.theme.*
 @Composable
 fun ConnectScreen(vm: CarViewModel, status: ConnectStatus) {
     var showSettings by remember { mutableStateOf(false) }
+    var showNews by remember { mutableStateOf(false) }
+    val news by vm.news.collectAsState()
+    val newsRead by vm.newsRead.collectAsState()
+    val unreadNews by vm.unreadNews.collectAsState()
 
     // Путь к машине один — сервер, поэтому никаких разрешений спрашивать не за
     // что: SEND_SMS убран вместе с запасным каналом.
@@ -49,6 +53,14 @@ fun ConnectScreen(vm: CarViewModel, status: ConnectStatus) {
         ) { SettingsScreen(vm) { showSettings = false } }
         return
     }
+    if (showNews) {
+        LaunchedEffect(Unit) { vm.loadNews() }
+        androidx.compose.material3.Surface(color = ElectroColors.Background, modifier = Modifier.fillMaxSize()) {
+            NewsScreen(news, newsRead, onRead = { vm.markNewsRead(it.id) },
+                onReadAll = { vm.markAllNewsRead() }, onBack = { showNews = false })
+        }
+        return
+    }
 
     val chosen by vm.selectedVehicle.collectAsState()
     val support by vm.support.collectAsState()
@@ -62,6 +74,8 @@ fun ConnectScreen(vm: CarViewModel, status: ConnectStatus) {
     ) {
         // Помощь доступна и до подключения — кнопка в правом верхнем углу.
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            NewsBell(unreadNews, onClick = { showNews = true })
+            Spacer(Modifier.width(Space.x2))
             HelpFab(onClick = { showHelp = true })
         }
         Spacer(Modifier.weight(1f))

@@ -153,20 +153,25 @@ class CarViewModel(app: Application) : AndroidViewModel(app) {
 
     private val _news = MutableStateFlow<List<NewsItemDto>>(emptyList())
     val news: StateFlow<List<NewsItemDto>> = _news.asStateFlow()
-    private val _newsSeen = MutableStateFlow(settings.newsSeen)
+    private val _newsRead = MutableStateFlow(settings.newsRead)
+    val newsRead: StateFlow<Set<String>> = _newsRead.asStateFlow()
 
-    /** Сколько новостей человек ещё не открывал — бейдж на колокольчике. */
+    /** Сколько новостей ещё не отмечено прочитанными — бейдж на колокольчике. */
     val unreadNews: StateFlow<Int> =
-        combine(_news, _newsSeen) { list, seen -> list.count { it.created_at > seen } }
+        combine(_news, _newsRead) { list, read -> list.count { it.id !in read } }
             .stateIn(viewModelScope, SharingStarted.Eagerly, 0)
 
     fun loadNews() = viewModelScope.launch { _news.value = repo.news() }
 
-    /** Открыли ленту — всё, что в ней есть, считается прочитанным. */
-    fun markNewsSeen() {
-        val newest = _news.value.maxOfOrNull { it.created_at } ?: return
-        settings.newsSeen = newest
-        _newsSeen.value = newest
+    fun markNewsRead(id: String) {
+        val next = _newsRead.value + id
+        settings.newsRead = next; _newsRead.value = next
+    }
+
+    /** «Прочитать всё» — бейдж гаснет. */
+    fun markAllNewsRead() {
+        val next = _newsRead.value + _news.value.map { it.id }
+        settings.newsRead = next; _newsRead.value = next
     }
 
     private var pollJob: Job? = null

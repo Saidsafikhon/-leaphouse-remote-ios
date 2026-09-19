@@ -260,40 +260,77 @@ struct VoiceScreen: View {
 
 // MARK: - Новости и уведомления
 
-/// Лента из админки: новости, уведомления, важное. Новое — сверху.
+/// Лента из админки: уведомления, новости, важное. Непрочитанное — с точкой,
+/// тап отмечает прочитанным, «Прочитать всё» гасит бейдж.
 struct NewsScreen: View {
     @Environment(\.palette) private var p
     let items: [NewsItem]
+    let isRead: (NewsItem) -> Bool
+    let onRead: (NewsItem) -> Void
+    let onReadAll: () -> Void
     let onBack: () -> Void
     let onRefresh: () -> Void
 
+    @State private var filter: String = "all"
+    @State private var selected: NewsItem? = nil
+    private let filters: [(String, String)] = [("all", "Все"), ("info", "Уведомления"), ("news", "Новости"), ("alert", "Важное")]
+
     var body: some View {
+        let shown = items.filter { filter == "all" || $0.kind == filter }
+        let unread = items.filter { !isRead($0) }.count
         ScreenScaffold(title: "Новости", onBack: onBack) {
-            if items.isEmpty {
-                EmptyNote(text: "Пока ничего нет. Здесь появятся новости и уведомления от оператора.")
-            }
-            ForEach(items) { n in
-                let st = style(n.kind)
-                HStack(alignment: .top, spacing: Space.x3) {
-                    Image(systemName: st.0).font(.system(size: 17, weight: .medium)).foregroundStyle(st.1)
-                        .frame(width: 36, height: 36).background(st.1.opacity(0.14)).clipShape(Circle())
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(n.title).font(ElectroType.body).foregroundStyle(p.textPrimary)
-                        if !n.body.isEmpty {
-                            Text(n.body).font(ElectroType.caption).foregroundStyle(p.textSecondary)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 6) {
+                    ForEach(filters, id: \.0) { f in
+                        Button { filter = f.0 } label: {
+                            Text(f.1).font(ElectroType.body).foregroundStyle(filter == f.0 ? p.accent : p.textPrimary)
+                                .padding(.horizontal, Space.x4).frame(height: ControlSize.chip)
+                                .background(p.surfaceElevated)
+                                .clipShape(RoundedRectangle(cornerRadius: Radius.sm, style: .continuous))
+                                .overlay(RoundedRectangle(cornerRadius: Radius.sm, style: .continuous).stroke(filter == f.0 ? p.accent : .clear, lineWidth: 1))
                         }
-                        Text(newsDate(n.created_at)).font(ElectroType.unit).foregroundStyle(p.textMuted)
+                        .buttonStyle(.plain)
                     }
-                    Spacer(minLength: 0)
                 }
-                .padding(Space.x4)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(p.surface)
-                .clipShape(RoundedRectangle(cornerRadius: Radius.md, style: .continuous))
+            }
+            if unread > 0 {
+                ElectroButton(text: "Прочитать всё (\(unread))", style: .secondary, action: onReadAll)
+            }
+            if shown.isEmpty {
+                EmptyNote(text: items.isEmpty ? "Пока ничего нет. Здесь появятся новости и уведомления от оператора." : "В этом разделе пусто.")
+            }
+            ForEach(shown) { n in
+                let st = style(n.kind)
+                let read = isRead(n)
+                Button { onRead(n); selected = n } label: {
+                    HStack(alignment: .top, spacing: Space.x3) {
+                        Image(systemName: st.0).font(.system(size: 17, weight: .medium)).foregroundStyle(st.1)
+                            .frame(width: 36, height: 36).background(st.1.opacity(0.14)).clipShape(Circle())
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(n.title).font(ElectroType.body).foregroundStyle(p.textPrimary)
+                            if !n.body.isEmpty {
+                                Text(n.body).font(ElectroType.caption).foregroundStyle(p.textSecondary)
+                            }
+                            Text(newsDate(n.created_at) + (read ? "" : " · не прочитано")).font(ElectroType.unit).foregroundStyle(read ? p.textMuted : p.accent)
+                        }
+                        Spacer(minLength: 0)
+                        if !read { Circle().fill(p.accent).frame(width: 8, height: 8).padding(.top, 6) }
+                    }
+                    .padding(Space.x4)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(p.surface)
+                    .clipShape(RoundedRectangle(cornerRadius: Radius.md, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: Radius.md, style: .continuous).stroke(read ? .clear : p.accent.opacity(0.35), lineWidth: 1))
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
             }
         }
         .refreshable { onRefresh() }
         .onAppear(perform: onRefresh)
+        .fullScreenCover(item: $selected) { n in
+            NewsDetailScreen(item: n) { selected = nil }
+        }
     }
 
     private func style(_ kind: String) -> (String, Color) {
@@ -302,6 +339,73 @@ struct NewsScreen: View {
         case "news": return ("newspaper", p.info)
         default: return ("bell", p.accent)
         }
+    }
+}
+
+/// Одна запись на весь экран: заголовок, тип, дата, полный текст.
+struct NewsDetailScreen: View {
+    @Environment(\.palette) private var p
+    let item: NewsItem
+    let onClose: () -> Void
+
+    var body: some View {
+        let st = style(item.kind)
+        VStack(spacing: 0) {
+            HStack(spacing: Space.x3) {
+                Button(action: onClose) {
+                    Image(systemName: "chevron.left").font(.system(size: 20, weight: .medium)).foregroundStyle(p.textPrimary)
+                        .frame(width: 32, height: 32)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Назад")
+                Text(kindTitle(item.kind)).font(ElectroType.headline).foregroundStyle(p.textPrimary)
+                Spacer()
+                Button(action: onClose) {
+                    Image(systemName: "xmark").font(.system(size: 18, weight: .medium)).foregroundStyle(p.textSecondary)
+                        .frame(width: 32, height: 32)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Закрыть")
+            }
+            .padding(Space.x4)
+            ScrollView {
+                VStack(alignment: .leading, spacing: Space.x4) {
+                    HStack(spacing: Space.x3) {
+                        Image(systemName: st.0).font(.system(size: 20, weight: .medium)).foregroundStyle(st.1)
+                            .frame(width: 44, height: 44).background(st.1.opacity(0.14)).clipShape(Circle())
+                        Text(newsDate(item.created_at)).font(ElectroType.caption).foregroundStyle(p.textMuted)
+                    }
+                    Text(item.title).font(ElectroType.title).foregroundStyle(p.textPrimary)
+                    if !item.body.isEmpty {
+                        Text(item.body).font(ElectroType.body).foregroundStyle(p.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                .padding(.horizontal, Space.x5)
+                .padding(.bottom, Space.x6)
+            }
+            ElectroButton(text: "Закрыть", style: .secondary, action: onClose)
+                .padding(.horizontal, Space.x5)
+                .padding(.bottom, Space.x4)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(p.background)
+    }
+
+    private func style(_ kind: String) -> (String, Color) {
+        switch kind {
+        case "alert": return ("exclamationmark.triangle", p.warn)
+        case "news": return ("newspaper", p.info)
+        default: return ("bell", p.accent)
+        }
+    }
+}
+
+private func kindTitle(_ kind: String) -> String {
+    switch kind {
+    case "alert": return "Важное"
+    case "news": return "Новость"
+    default: return "Уведомление"
     }
 }
 

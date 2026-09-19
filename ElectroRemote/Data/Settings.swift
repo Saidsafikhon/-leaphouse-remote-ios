@@ -101,10 +101,10 @@ final class Settings {
     func bool(_ key: String, default def: Bool = false) -> Bool { d.object(forKey: key) == nil ? def : d.bool(forKey: key) }
     func setBool(_ key: String, _ v: Bool) { d.set(v, forKey: key) }
 
-    /// Последняя просмотренная новость (created_at) — для бейджа непрочитанных.
-    var newsSeen: String {
-        get { d.string(forKey: "newsSeen") ?? "" }
-        set { d.set(newValue, forKey: "newsSeen") }
+    /// Прочитанные новости (id) — отмечаются вручную, бейдж считает остальные.
+    var newsRead: Set<String> {
+        get { Set(d.stringArray(forKey: "newsRead") ?? []) }
+        set { d.set(Array(newValue), forKey: "newsRead") }
     }
 
     var loggedIn: Bool { !(token ?? "").isEmpty }

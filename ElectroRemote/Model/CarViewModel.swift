@@ -54,7 +54,7 @@ final class CarViewModel: ObservableObject {
     @Published private(set) var support: SupportDto? = nil
     /// Лента новостей и уведомлений из админки.
     @Published private(set) var news: [NewsItem] = []
-    @Published private(set) var newsSeen: String = Settings.shared.newsSeen
+    @Published private(set) var newsRead: Set<String> = Settings.shared.newsRead
     /// Меняется при смене ника — чтобы список перерисовался.
     @Published private(set) var nickVersion = 0
 
@@ -90,15 +90,21 @@ final class CarViewModel: ObservableObject {
 
     // --- новости и push ---
 
-    var unreadNews: Int { news.filter { $0.created_at > newsSeen }.count }
+    var unreadNews: Int { news.filter { !newsRead.contains($0.id) }.count }
 
     func loadNews() { Task { news = await repo.news() } }
 
-    /// Открыли ленту — всё, что в ней есть, считается прочитанным.
-    func markNewsSeen() {
-        guard let newest = news.map({ $0.created_at }).max() else { return }
-        settings.newsSeen = newest
-        newsSeen = newest
+    func isRead(_ item: NewsItem) -> Bool { newsRead.contains(item.id) }
+
+    func markRead(_ item: NewsItem) {
+        newsRead.insert(item.id)
+        settings.newsRead = newsRead
+    }
+
+    /// «Прочитать всё» — бейдж гаснет.
+    func markAllRead() {
+        newsRead.formUnion(news.map { $0.id })
+        settings.newsRead = newsRead
     }
 
     var selectedVehicle: VehicleDto? { vehicles.first { $0.vehicle_id == vehicleId } }

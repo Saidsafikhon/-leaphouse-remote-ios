@@ -9,6 +9,7 @@ struct ConnectScreen: View {
 
     @State private var showSettings = false
     @State private var showHelp = false
+    @State private var showNews = false
 
     private func start() {
         if vm.wakeConfigured { vm.connect() } else { showSettings = true }
@@ -17,6 +18,9 @@ struct ConnectScreen: View {
     var body: some View {
         if showSettings {
             SettingsScreen(vm: vm) { showSettings = false }
+        } else if showNews {
+            NewsScreen(items: vm.news, isRead: { vm.isRead($0) }, onRead: { vm.markRead($0) },
+                       onReadAll: { vm.markAllRead() }, onBack: { showNews = false }, onRefresh: { vm.loadNews() })
         } else {
             content
         }
@@ -25,7 +29,11 @@ struct ConnectScreen: View {
     private var content: some View {
         let chosen = vm.selectedVehicle
         return VStack(spacing: 0) {
-            HStack { Spacer(); HelpFab { showHelp = true } }
+            HStack(spacing: Space.x2) {
+                Spacer()
+                NewsBell(unread: vm.unreadNews) { showNews = true }
+                HelpFab { showHelp = true }
+            }
             Spacer()
 
             Text("LEAPREMOTE").font(ElectroType.overline).kerning(1.1).foregroundStyle(p.accent)
